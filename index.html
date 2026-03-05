@@ -30,7 +30,6 @@
       padding: 4px;
       border-radius: 4px;
       outline: none;
-      box-sizing: border-box;
     }
     .editable-field:hover {
       background: rgba(79, 70, 229, 0.05);
@@ -41,10 +40,6 @@
       outline: 2px solid #4F46E5;
       outline-offset: 2px;
       background: rgba(79, 70, 229, 0.1);
-    }
-    .editable-field:focus,
-    .editable-field:hover {
-      min-height: fit-content;
     }
 
     .editable-image {
@@ -69,6 +64,11 @@
       font-weight: 600;
       pointer-events: none;
       white-space: nowrap;
+    }
+
+    /* 섹션 삭제 버튼 스타일 */
+    .delete-section-wrapper:hover .delete-section-btn {
+      opacity: 1 !important;
     }
 
     .no-scrollbar::-webkit-scrollbar { display: none; }
@@ -414,25 +414,28 @@
         elements: [
           { type: 'rect', x: 0, y: 0, width: 1920, height: 1080, fill: '#FFFFFF' },
 
-          // header group (반응형)
-          { type: 'text', x: 1050, y: 195, content: '핵심 가치', fontSize: 32, fontWeight: '700', fill: '#BBBBBB', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.3, editable: true, maxLines: 1, width: 750, itemGroup: 'header', itemRole: 'subtitle' },
-          { type: 'text', x: 1050, y: 239, content: '타이틀 최대 1줄', fontSize: 48, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.48, lineHeight: 1.3, editable: true, maxLines: 1, width: 750, itemGroup: 'header', itemRole: 'title', titleGap: 12 },
-          { type: 'text', x: 1050, y: 336, content: '최대 2줄 영역입니다. 핵심만 담아 전달력을 높여 보세요. 간결한 문구는 시선을 사로잡고 정보를 명확히 전달합니다.', fontSize: 20, fontWeight: '500', fill: '#666666', fontFamily: 'Pretendard', letterSpacing: -0.2, lineHeight: 1.5, editable: true, maxLines: 2, width: 750, itemGroup: 'header', itemRole: 'description', titleGap: 35 },
+          // titleGroup (x:1050, y:140, gap:12)
+          { type: 'text', x: 1050, y: 140, content: '핵심가치', fontSize: 32, fontWeight: '700', fill: '#BBBBBB', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.3, editable: true },
+          { type: 'text', x: 1050, y: 184, content: '메인 타이틀 최대 1줄', fontSize: 48, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.48, lineHeight: 1.3, editable: true, maxLines: 1, width: 750 },
 
-          // infoContent box (x:1050, y:461, width:750, padding:40, gap:32)
-          { type: 'rect', x: 1050, y: 461, width: 750, height: 320, fill: '#F7F7F7', cornerRadius: 24, dynamicHeight: true, padding: 40, gap: 32, contentGroup: 'corevalue01-box', dynamicY: true, headerGap: 30 },
+          // bodyText
+          { type: 'text', x: 1050, y: 281, content: '최대 2줄 영역입니다. 핵심만 담아 전달력을 높여 보세요. 간결한 문구는 시선을 사로잡고 정보를 명확히 전달합니다.', fontSize: 20, fontWeight: '500', fill: '#666666', fontFamily: 'Pretendard', letterSpacing: -0.2, lineHeight: 1.5, editable: true, maxLines: 2, width: 750 },
 
-          // item 1 (padding:40 → starts at y:501)
-          { type: 'text', x: 1090, y: 501, content: '타이틀 최대 1줄', fontSize: 32, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.5, editable: true, contentGroup: 'corevalue01-box', maxLines: 1, width: 670, itemGroup: 'item1', itemRole: 'title' },
-          { type: 'text', x: 1090, y: 549, content: '최대 2줄 영역입니다. 핵심만 담아 전달력을 높여 보세요. 간결한 문구는 시선을 사로잡고 정보를 명확히 전달합니다.', fontSize: 20, fontWeight: '500', fill: '#666666', fontFamily: 'Pretendard', letterSpacing: -0.2, lineHeight: 1.5, editable: true, contentGroup: 'corevalue01-box', maxLines: 2, width: 670, itemGroup: 'item1', itemRole: 'description', titleGap: 12 },
+          // infoContent box (x:1050, y:381, width:750, padding:40, gap:40)
+          // 컨테이너 높이 계산: padding 40 + (타이틀 48 + gap 16 + 본문 60) × 3 + 아이템간 gap 40 × 2 + padding 40 = 532
+          { type: 'rect', x: 1050, y: 381, width: 750, height: 532, fill: '#F7F7F7', cornerRadius: 24 },
 
-          // item 2 (gap:32 from item 1 → y:501 + 48 + 12 + 30 + 32 = 623)
-          { type: 'text', x: 1090, y: 611, content: '타이틀 최대 1줄', fontSize: 32, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.5, editable: true, contentGroup: 'corevalue01-box', maxLines: 1, width: 670, itemGroup: 'item2', itemRole: 'title', prevItemGroup: 'item1', itemGap: 32 },
-          { type: 'text', x: 1090, y: 659, content: '최대 2줄 영역입니다. 핵심만 담아 전달력을 높여 보세요. 간결한 문구는 시선을 사로잡고 정보를 명확히 전달합니다.', fontSize: 20, fontWeight: '500', fill: '#666666', fontFamily: 'Pretendard', letterSpacing: -0.2, lineHeight: 1.5, editable: true, contentGroup: 'corevalue01-box', maxLines: 2, width: 670, itemGroup: 'item2', itemRole: 'description', titleGap: 12 },
+          // item 1 (padding:40 → starts at y:476)
+          { type: 'text', x: 1090, y: 476, content: '타이틀 최대 1줄', fontSize: 32, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.5, editable: true, maxLines: 1, width: 670 },
+          { type: 'text', x: 1090, y: 540, content: '최대 2줄 영역입니다. 핵심만 담아 전달력을 높여 보세요. 간결한 문구는 시선을 사로잡고 정보를 명확히 전달합니다.', fontSize: 20, fontWeight: '500', fill: '#666666', fontFamily: 'Pretendard', letterSpacing: -0.2, lineHeight: 1.5, editable: true, maxLines: 2, width: 670 },
 
-          // item 3 (gap:32 from item 2 → y:721)
-          { type: 'text', x: 1090, y: 721, content: '타이틀 최대 1줄', fontSize: 32, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.5, editable: true, contentGroup: 'corevalue01-box', maxLines: 1, width: 670, itemGroup: 'item3', itemRole: 'title', prevItemGroup: 'item2', itemGap: 32 },
-          { type: 'text', x: 1090, y: 769, content: '최대 2줄 영역입니다. 핵심만 담아 전달력을 높여 보세요. 간결한 문구는 시선을 사로잡고 정보를 명확히 전달합니다.', fontSize: 20, fontWeight: '500', fill: '#666666', fontFamily: 'Pretendard', letterSpacing: -0.2, lineHeight: 1.5, editable: true, contentGroup: 'corevalue01-box', maxLines: 2, width: 670, itemGroup: 'item3', itemRole: 'description', titleGap: 12 },
+          // item 2 (item1 y:476 + 타이틀 48 + gap 16 + 본문 60 + 아이템간 gap 40 = 640)
+          { type: 'text', x: 1090, y: 640, content: '타이틀 최대 1줄', fontSize: 32, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.5, editable: true, maxLines: 1, width: 670 },
+          { type: 'text', x: 1090, y: 704, content: '최대 2줄 영역입니다. 핵심만 담아 전달력을 높여 보세요. 간결한 문구는 시선을 사로잡고 정보를 명확히 전달합니다.', fontSize: 20, fontWeight: '500', fill: '#666666', fontFamily: 'Pretendard', letterSpacing: -0.2, lineHeight: 1.5, editable: true, maxLines: 2, width: 670 },
+
+          // item 3 (item2 y:640 + 타이틀 48 + gap 16 + 본문 60 + 아이템간 gap 40 = 804)
+          { type: 'text', x: 1090, y: 804, content: '타이틀 최대 1줄', fontSize: 32, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.5, editable: true, maxLines: 1, width: 670 },
+          { type: 'text', x: 1090, y: 868, content: '최대 2줄 영역입니다. 핵심만 담아 전달력을 높여 보세요. 간결한 문구는 시선을 사로잡고 정보를 명확히 전달합니다.', fontSize: 20, fontWeight: '500', fill: '#666666', fontFamily: 'Pretendard', letterSpacing: -0.2, lineHeight: 1.5, editable: true, maxLines: 2, width: 670 },
 
           { type: 'text', x: 260, y: 990, content: '2026 © GC Company Corp. All rights reserved.', fontSize: 20, fontWeight: '500', fill: '#BBBBBB', fontFamily: 'Pretendard', letterSpacing: -0.2, lineHeight: 1.4 },
           { type: 'text', x: 1780, y: 990, content: 'P1', fontSize: 20, fontWeight: '500', fill: '#999999', fontFamily: 'Pretendard', letterSpacing: -0.2, lineHeight: 1.4, editable: true }
@@ -874,7 +877,6 @@
       });
       const [showTemplateModal, setShowTemplateModal] = useState(false);
       const [selectedCategory, setSelectedCategory] = useState(null);
-      const [layoutCache, setLayoutCache] = useState({});
 
       const containerRef = useRef(null);
       const slideRef = useRef(null);
@@ -1029,11 +1031,7 @@
       const updateSlideData = (elementId, value) => {
         const newSlides = [...slides];
         if (!newSlides[currentSlideIndex].data) newSlides[currentSlideIndex].data = {};
-        // 새로운 객체를 생성하여 React가 변경을 감지하도록 함
-        newSlides[currentSlideIndex].data = {
-          ...newSlides[currentSlideIndex].data,
-          [elementId]: value
-        };
+        newSlides[currentSlideIndex].data[elementId] = value;
         setSlides(newSlides);
       };
 
@@ -1164,7 +1162,7 @@
             <div className="flex items-center gap-3">
               <span className={`font-bold ${theme.textMain} tracking-tight text-base`}>TransformTrack 소개서 빌더</span>
               <div className={`hidden sm:flex px-2 py-0.5 rounded text-[10px] font-bold border ${theme.border} ${theme.textSub}`}>1920 x 1080</div>
-              {/* <button onClick={() => setShowPdfUpload(true)} className="px-3 py-1.5 text-xs font-bold bg-emerald-100 text-emerald-700 hover:bg-emerald-200 rounded-lg">📄 PDF 업로드</button> */}
+              <button onClick={() => setShowPdfUpload(true)} className="px-3 py-1.5 text-xs font-bold bg-emerald-100 text-emerald-700 hover:bg-emerald-200 rounded-lg">📄 PDF 업로드</button>
             </div>
 
             {/* 현재 카테고리의 템플릿 Type 선택 */}
@@ -1231,7 +1229,7 @@
                         showTopIndicator ? 'drop-indicator-top' : ''
                       } ${showBottomIndicator ? 'drop-indicator-bottom' : ''}`}
                     >
-                      <TemplateThumbnail template={template} data={slide.data} cachedLayout={layoutCache[slide.id]} slideId={slide.id} />
+                      <TemplateThumbnail template={template} data={slide.data} />
                       <div className="text-xs font-semibold text-slate-600 text-center truncate mt-2">{idx + 1}. {template?.category}</div>
                     </div>
                   );
@@ -1241,12 +1239,7 @@
 
             <div ref={containerRef} className={`flex-1 ${theme.workspaceBg} flex flex-col items-center justify-center relative overflow-hidden p-1 pb-20`}>
               <div ref={slideRef} className={`${theme.slideBg} shadow-2xl relative overflow-hidden border ${theme.border}`} style={{ width: '1920px', height: '1080px', transform: `scale(${scale})`, flexShrink: 0, transformOrigin: 'center center' }}>
-                {currentTemplate && <SlideCanvas template={currentTemplate} data={currentSlide.data} onUpdate={updateSlideData} onImageUpload={handleImageUpload} onLayoutCalculated={(heights, positions) => {
-                  setLayoutCache(prev => ({
-                    ...prev,
-                    [currentSlide.id]: { heights, positions }
-                  }));
-                }} />}
+                {currentTemplate && <SlideCanvas template={currentTemplate} data={currentSlide.data} onUpdate={updateSlideData} onImageUpload={handleImageUpload} />}
               </div>
 
               <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-white/95 backdrop-blur-md p-2 rounded-2xl shadow-[0_10px_50px_rgba(0,0,0,0.1)] border border-white/50 z-[100] w-max max-w-[98vw] overflow-x-auto no-scrollbar">
@@ -1323,18 +1316,14 @@
     }
 
     // ==================== 슬라이드 캔버스 렌더러 ====================
-    function SlideCanvas({ template, data, onUpdate, onImageUpload, onLayoutCalculated }) {
+    function SlideCanvas({ template, data, onUpdate, onImageUpload }) {
       const textRefs = useRef({});
-      const [dynamicHeights, setDynamicHeights] = useState({});
-      const [dynamicPositions, setDynamicPositions] = useState({});
+      const containerRef = useRef(null);
+      const [, forceRender] = useState(0);
+      const [undoStack, setUndoStack] = useState([]);
 
-      const handleTextEdit = (elementId, e, element) => {
+      const handleTextEdit = (elementId, e) => {
         onUpdate(elementId, e.target.innerText);
-      };
-
-      const handleTextInput = (elementId, e, element) => {
-        const target = e.target;
-        onUpdate(elementId, target.innerText);
       };
 
       const handleImageClick = (elementId) => {
@@ -1347,173 +1336,297 @@
         input.click();
       };
 
-      // 동적 높이 및 위치 계산
-      useEffect(() => {
-        console.log('🔄 useEffect 실행 - 높이 재계산 중...', data);
+      // 섹션 삭제 핸들러 (애니메이션 + Undo 지원)
+      const handleDeleteSection = (sectionKey) => {
+        // Undo 스택에 현재 상태 저장
+        setUndoStack(prev => [...prev, { key: sectionKey, value: false }]);
 
-        const newHeights = {};
-        const newPositions = {};
+        // 삭제 애니메이션을 위한 상태 (fade-out)
+        const element = document.querySelector(`[data-section="${sectionKey}"]`);
+        if (element) {
+          element.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+          element.style.opacity = '0';
+          element.style.transform = 'scale(0.95)';
 
-        // 박스 찾기
-        const boxElement = template.elements.find(el => el.dynamicHeight && el.contentGroup === 'corevalue01-box');
-        if (!boxElement) {
-          setDynamicHeights(newHeights);
-          setDynamicPositions(newPositions);
-          return;
+          setTimeout(() => {
+            onUpdate(sectionKey, true);
+          }, 300);
+        } else {
+          onUpdate(sectionKey, true);
         }
+      };
 
-        const boxStartY = boxElement.y;
-        const padding = boxElement.padding || 40;
-        const itemGap = boxElement.gap || 32;
-        const headerGap = boxElement.headerGap || 30;
+      // Ctrl+Z 키보드 이벤트
+      useEffect(() => {
+        const handleKeyDown = (e) => {
+          if ((e.metaKey || e.ctrlKey) && e.key === 'z') {
+            const isInputFocused = document.activeElement.tagName === 'INPUT' ||
+                                   document.activeElement.tagName === 'TEXTAREA' ||
+                                   document.activeElement.contentEditable === 'true';
 
-        // 1단계: itemGroup별로 요소 그룹화
-        const itemGroups = {
-          header: { subtitle: null, subtitleIdx: -1, title: null, titleIdx: -1, description: null, descriptionIdx: -1, subtitleHeight: 0, titleHeight: 0, descriptionHeight: 0 },
-          item1: { title: null, titleIdx: -1, description: null, descriptionIdx: -1, titleHeight: 0, descriptionHeight: 0 },
-          item2: { title: null, titleIdx: -1, description: null, descriptionIdx: -1, titleHeight: 0, descriptionHeight: 0 },
-          item3: { title: null, titleIdx: -1, description: null, descriptionIdx: -1, titleHeight: 0, descriptionHeight: 0 }
-        };
-
-        template.elements.forEach((element, idx) => {
-          if (element.itemGroup) {
-            const group = itemGroups[element.itemGroup];
-            if (!group) return;
-
-            if (element.itemRole === 'subtitle') {
-              group.subtitle = element;
-              group.subtitleIdx = idx;
-            } else if (element.itemRole === 'title') {
-              group.title = element;
-              group.titleIdx = idx;
-            } else if (element.itemRole === 'description') {
-              group.description = element;
-              group.descriptionIdx = idx;
+            if (!isInputFocused && undoStack.length > 0) {
+              e.preventDefault();
+              const lastAction = undoStack[undoStack.length - 1];
+              onUpdate(lastAction.key, false);
+              setUndoStack(prev => prev.slice(0, -1));
             }
           }
-        });
-
-        // 2단계: 각 그룹의 실제 텍스트 높이 측정 (함수로 추출)
-        const measureTextHeight = (element, idx) => {
-          const elementId = `${element.type}_${idx}`;
-          const content = data[elementId] || element.content;
-
-          const tempDiv = document.createElement('div');
-          tempDiv.style.cssText = `
-            position: absolute;
-            visibility: hidden;
-            width: ${element.width}px;
-            font-size: ${element.fontSize}px;
-            font-weight: ${element.fontWeight};
-            font-family: ${element.fontFamily};
-            line-height: ${element.lineHeight || 1.5};
-            letter-spacing: ${element.letterSpacing ? element.letterSpacing + 'px' : 'normal'};
-            word-break: break-word;
-            white-space: pre-wrap;
-          `;
-
-          // maxLines가 있으면 -webkit-box 스타일 적용
-          if (element.maxLines) {
-            tempDiv.style.display = '-webkit-box';
-            tempDiv.style.webkitLineClamp = element.maxLines;
-            tempDiv.style.webkitBoxOrient = 'vertical';
-            tempDiv.style.overflow = 'hidden';
-            tempDiv.style.textOverflow = 'ellipsis';
-            tempDiv.style.wordBreak = 'break-word';
-          }
-
-          tempDiv.innerText = content;
-          document.body.appendChild(tempDiv);
-
-          const height = tempDiv.offsetHeight;
-
-          document.body.removeChild(tempDiv);
-          return height;
         };
 
-        Object.keys(itemGroups).forEach((groupName) => {
-          const group = itemGroups[groupName];
-          if (group.subtitle) group.subtitleHeight = measureTextHeight(group.subtitle, group.subtitleIdx);
-          if (group.title) group.titleHeight = measureTextHeight(group.title, group.titleIdx);
-          if (group.description) group.descriptionHeight = measureTextHeight(group.description, group.descriptionIdx);
-        });
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+      }, [undoStack]);
 
-        // 3단계: header 그룹 위치 계산
-        const headerGroup = itemGroups.header;
-        let headerStartY = headerGroup.subtitle?.y || 195;
-        let currentY = headerStartY;
 
-        if (headerGroup.subtitleIdx !== -1) {
-          newPositions[headerGroup.subtitleIdx] = currentY;
-          currentY += headerGroup.subtitleHeight;
-        }
+      // Core Value Type 01 전용 렌더링
+      if (template.id === 'corevalue01') {
+        return (
+          <div className="w-full h-full relative" style={{ backgroundColor: template.elements[0]?.fill || '#FFFFFF' }}>
+            {/* 배경 */}
 
-        if (headerGroup.titleIdx !== -1) {
-          const titleGap = headerGroup.title?.titleGap || 12;
-          currentY += titleGap;
-          newPositions[headerGroup.titleIdx] = currentY;
-          currentY += headerGroup.titleHeight;
-        }
+            {/* 상단 영역 + 컨테이너를 flexbox로 */}
+            <div style={{
+              position: 'absolute',
+              left: '1050px',
+              top: '100px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0px'
+            }}>
+              {/* 핵심가치 */}
+              <div
+                className="editable-field"
+                contentEditable
+                suppressContentEditableWarning
+                onBlur={(e) => handleTextEdit('text_1', e)}
+                style={{
+                  fontSize: '32px',
+                  fontWeight: '700',
+                  color: '#BBBBBB',
+                  fontFamily: 'Pretendard',
+                  letterSpacing: '-0.32px',
+                  lineHeight: 1.3,
+                  marginBottom: '2px'
+                }}>
+                {data['text_1'] || template.elements[1].content}
+              </div>
 
-        if (headerGroup.descriptionIdx !== -1) {
-          const descGap = headerGroup.description?.titleGap || 35;
-          currentY += descGap;
-          newPositions[headerGroup.descriptionIdx] = currentY;
-          currentY += headerGroup.descriptionHeight;
-        }
+              {/* 메인 타이틀 */}
+              <div
+                className="editable-field"
+                contentEditable
+                suppressContentEditableWarning
+                onBlur={(e) => handleTextEdit('text_2', e)}
+                style={{
+                  fontSize: '48px',
+                  fontWeight: '700',
+                  color: '#333333',
+                  fontFamily: 'Pretendard',
+                  letterSpacing: '-0.48px',
+                  lineHeight: 1.3,
+                  width: '750px',
+                  marginBottom: '24px'
+                }}>
+                {data['text_2'] || template.elements[2].content}
+              </div>
 
-        // 4단계: 박스 Y 위치 계산 (header 아래로 배치)
-        const newBoxY = currentY + headerGap;
-        const boxIdx = template.elements.indexOf(boxElement);
-        newPositions[boxIdx] = newBoxY;
+              {/* 본문 - 여기가 줄어들면 아래 컨테이너가 올라감 */}
+              <div
+                className="editable-field"
+                contentEditable
+                suppressContentEditableWarning
+                onBlur={(e) => handleTextEdit('text_3', e)}
+                style={{
+                  fontSize: '20px',
+                  fontWeight: '500',
+                  color: '#666666',
+                  fontFamily: 'Pretendard',
+                  letterSpacing: '-0.2px',
+                  lineHeight: 1.5,
+                  width: '750px',
+                  marginBottom: '28px'
+                }}>
+                {data['text_3'] || template.elements[3].content}
+              </div>
 
-        // 5단계: 박스 내부 아이템 위치 계산
-        currentY = newBoxY + padding;
+              {/* 컨테이너 */}
+              <div
+                ref={containerRef}
+                style={{
+                  width: '750px',
+                  backgroundColor: '#F7F7F7',
+                  borderRadius: '24px',
+                  padding: '40px',
+                  display: 'flex',
+                  flexDirection: 'column'
+                }}>
+                {/* item 1 */}
+                {(!data['hidden_item_1']) && (
+                  <div data-section="hidden_item_1" className="delete-section-wrapper" style={{marginBottom: '40px', position: 'relative', opacity: 1, transform: 'scale(1)', transition: 'opacity 0.3s ease, transform 0.3s ease'}}>
+                    <button
+                      onClick={() => handleDeleteSection('hidden_item_1')}
+                      className="delete-section-btn"
+                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(0, 0, 0, 0.8)'}
+                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'rgba(0, 0, 0, 0.6)'}
+                      style={{
+                        position: 'absolute',
+                        top: '5px',
+                        right: '5px',
+                        width: '24px',
+                        height: '24px',
+                        borderRadius: '4px',
+                        backgroundColor: 'rgba(0, 0, 0, 0.6)',
+                        color: 'white',
+                        border: 'none',
+                        cursor: 'pointer',
+                        fontSize: '16px',
+                        fontWeight: 'normal',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        zIndex: 10,
+                        opacity: 0,
+                        transition: 'opacity 0.2s ease, background-color 0.15s ease'
+                      }}
+                      title="섹션 삭제 (Ctrl+Z로 복원)">
+                      ×
+                    </button>
+                    <div
+                      className="editable-field"
+                      contentEditable
+                      suppressContentEditableWarning
+                      onBlur={(e) => handleTextEdit('text_5', e)}
+                      style={{fontSize: '32px', fontWeight: '700', color: '#333333', fontFamily: 'Pretendard', letterSpacing: '-0.32px', lineHeight: 1.5, width: '670px', marginBottom: '16px'}}>
+                      {data['text_5'] || template.elements[5].content}
+                    </div>
+                    <div
+                      className="editable-field"
+                      contentEditable
+                      suppressContentEditableWarning
+                      onBlur={(e) => handleTextEdit('text_6', e)}
+                      style={{fontSize: '20px', fontWeight: '500', color: '#666666', fontFamily: 'Pretendard', letterSpacing: '-0.2px', lineHeight: 1.5, width: '670px'}}>
+                      {data['text_6'] || template.elements[6].content}
+                    </div>
+                  </div>
+                )}
 
-        ['item1', 'item2', 'item3'].forEach((groupName, groupIdx) => {
-          const group = itemGroups[groupName];
+                {/* item 2 */}
+                {(!data['hidden_item_2']) && (
+                  <div data-section="hidden_item_2" className="delete-section-wrapper" style={{marginBottom: '40px', position: 'relative', opacity: 1, transform: 'scale(1)', transition: 'opacity 0.3s ease, transform 0.3s ease'}}>
+                    <button
+                      onClick={() => handleDeleteSection('hidden_item_2')}
+                      className="delete-section-btn"
+                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(0, 0, 0, 0.8)'}
+                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'rgba(0, 0, 0, 0.6)'}
+                      style={{
+                        position: 'absolute',
+                        top: '5px',
+                        right: '5px',
+                        width: '24px',
+                        height: '24px',
+                        borderRadius: '4px',
+                        backgroundColor: 'rgba(0, 0, 0, 0.6)',
+                        color: 'white',
+                        border: 'none',
+                        cursor: 'pointer',
+                        fontSize: '16px',
+                        fontWeight: 'normal',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        zIndex: 10,
+                        opacity: 0,
+                        transition: 'opacity 0.2s ease, background-color 0.15s ease'
+                      }}
+                      title="섹션 삭제 (Ctrl+Z로 복원)">
+                      ×
+                    </button>
+                    <div
+                      className="editable-field"
+                      contentEditable
+                      suppressContentEditableWarning
+                      onBlur={(e) => handleTextEdit('text_7', e)}
+                      style={{fontSize: '32px', fontWeight: '700', color: '#333333', fontFamily: 'Pretendard', letterSpacing: '-0.32px', lineHeight: 1.5, width: '670px', marginBottom: '16px'}}>
+                      {data['text_7'] || template.elements[7].content}
+                    </div>
+                    <div
+                      className="editable-field"
+                      contentEditable
+                      suppressContentEditableWarning
+                      onBlur={(e) => handleTextEdit('text_8', e)}
+                      style={{fontSize: '20px', fontWeight: '500', color: '#666666', fontFamily: 'Pretendard', letterSpacing: '-0.2px', lineHeight: 1.5, width: '670px'}}>
+                      {data['text_8'] || template.elements[8].content}
+                    </div>
+                  </div>
+                )}
 
-          if (group.titleIdx !== -1) {
-            newPositions[group.titleIdx] = currentY;
-            currentY += group.titleHeight;
-          }
+                {/* item 3 */}
+                {(!data['hidden_item_3']) && (
+                  <div data-section="hidden_item_3" className="delete-section-wrapper" style={{position: 'relative', opacity: 1, transform: 'scale(1)', transition: 'opacity 0.3s ease, transform 0.3s ease'}}>
+                    <button
+                      onClick={() => handleDeleteSection('hidden_item_3')}
+                      className="delete-section-btn"
+                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(0, 0, 0, 0.8)'}
+                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'rgba(0, 0, 0, 0.6)'}
+                      style={{
+                        position: 'absolute',
+                        top: '5px',
+                        right: '5px',
+                        width: '24px',
+                        height: '24px',
+                        borderRadius: '4px',
+                        backgroundColor: 'rgba(0, 0, 0, 0.6)',
+                        color: 'white',
+                        border: 'none',
+                        cursor: 'pointer',
+                        fontSize: '16px',
+                        fontWeight: 'normal',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        zIndex: 10,
+                        opacity: 0,
+                        transition: 'opacity 0.2s ease, background-color 0.15s ease'
+                      }}
+                      title="섹션 삭제 (Ctrl+Z로 복원)">
+                      ×
+                    </button>
+                    <div
+                      className="editable-field"
+                      contentEditable
+                      suppressContentEditableWarning
+                      onBlur={(e) => handleTextEdit('text_9', e)}
+                      style={{fontSize: '32px', fontWeight: '700', color: '#333333', fontFamily: 'Pretendard', letterSpacing: '-0.32px', lineHeight: 1.5, width: '670px', marginBottom: '16px'}}>
+                      {data['text_9'] || template.elements[9].content}
+                    </div>
+                    <div
+                      className="editable-field"
+                      contentEditable
+                      suppressContentEditableWarning
+                      onBlur={(e) => handleTextEdit('text_10', e)}
+                      style={{fontSize: '20px', fontWeight: '500', color: '#666666', fontFamily: 'Pretendard', letterSpacing: '-0.2px', lineHeight: 1.5, width: '670px'}}>
+                      {data['text_10'] || template.elements[10].content}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
 
-          const titleGap = group.description?.titleGap || 12;
-          currentY += titleGap;
-
-          if (group.descriptionIdx !== -1) {
-            newPositions[group.descriptionIdx] = currentY;
-            currentY += group.descriptionHeight;
-          }
-
-          if (groupIdx < 2) {
-            currentY += itemGap;
-          }
-        });
-
-        // 6단계: 박스 높이 계산
-        const totalContentHeight = currentY - newBoxY;
-        newHeights[boxIdx] = totalContentHeight + padding;
-
-        console.log('🖼️ 메인 캔버스 계산:', {
-          headerSubtitleH: headerGroup.subtitleHeight,
-          headerTitleH: headerGroup.titleHeight,
-          headerDescH: headerGroup.descriptionHeight,
-          headerSubtitleY: newPositions[headerGroup.subtitleIdx],
-          headerTitleY: newPositions[headerGroup.titleIdx],
-          headerDescY: newPositions[headerGroup.descriptionIdx],
-          boxY: newBoxY,
-          boxHeight: newHeights[boxIdx]
-        });
-
-        setDynamicHeights(newHeights);
-        setDynamicPositions(newPositions);
-
-        // 계산 결과를 상위로 전달
-        if (onLayoutCalculated) {
-          onLayoutCalculated(newHeights, newPositions);
-        }
-      }, [template, data]);
+            {/* 푸터 */}
+            <div className="absolute whitespace-pre-wrap" style={{ left: '260px', top: '990px', fontSize: '20px', fontWeight: '500', color: '#BBBBBB', fontFamily: 'Pretendard', letterSpacing: '-0.2px', lineHeight: 1.4 }}>
+              {template.elements[11].content}
+            </div>
+            <div
+              className="editable-field absolute"
+              contentEditable
+              suppressContentEditableWarning
+              onBlur={(e) => handleTextEdit('text_12', e)}
+              style={{ left: '1780px', top: '990px', fontSize: '20px', fontWeight: '500', color: '#999999', fontFamily: 'Pretendard', letterSpacing: '-0.2px', lineHeight: 1.4 }}>
+              {data['text_12'] || template.elements[12].content}
+            </div>
+          </div>
+        );
+      }
 
       return (
         <div className="w-full h-full relative" style={{ backgroundColor: template.elements[0]?.fill || '#FFFFFF' }}>
@@ -1521,97 +1634,208 @@
             const elementId = `${element.type}_${idx}`;
 
             if (element.type === 'rect') {
-              const rectHeight = dynamicHeights[idx] || element.height;
-              const rectY = dynamicPositions[idx] !== undefined ? dynamicPositions[idx] : element.y;
+              // Core Value Type 01 컨테이너 - 내부에 텍스트를 포함
+              if (template.id === 'corevalue01' && idx === 4) {
+                return (
+                  <div
+                    key={idx}
+                    ref={containerRef}
+                    style={{
+                      position: 'absolute',
+                      left: `${element.x}px`,
+                      top: `${element.y}px`,
+                      width: `${element.width}px`,
+                      backgroundColor: element.fill,
+                      borderRadius: element.cornerRadius ? `${element.cornerRadius}px` : '0',
+                      padding: '40px',
+                      display: 'flex',
+                      flexDirection: 'column'
+                    }}>
+                    {/* item 1 */}
+                    {(!data['hidden_item_1']) && (
+                      <div data-section="hidden_item_1" className="delete-section-wrapper" style={{marginBottom: '40px', position: 'relative', opacity: 1, transform: 'scale(1)', transition: 'opacity 0.3s ease, transform 0.3s ease'}}>
+                        <button
+                          onClick={() => handleDeleteSection('hidden_item_1')}
+                          className="delete-section-btn"
+                          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(0, 0, 0, 0.8)'}
+                          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'rgba(0, 0, 0, 0.6)'}
+                          style={{
+                            position: 'absolute',
+                            top: '5px',
+                            right: '5px',
+                            width: '24px',
+                            height: '24px',
+                            borderRadius: '4px',
+                            backgroundColor: 'rgba(0, 0, 0, 0.6)',
+                            color: 'white',
+                            border: 'none',
+                            cursor: 'pointer',
+                            fontSize: '16px',
+                            fontWeight: 'normal',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            zIndex: 10,
+                            opacity: 0,
+                            transition: 'opacity 0.2s ease, background-color 0.15s ease'
+                          }}
+                          title="섹션 삭제 (Ctrl+Z로 복원)">
+                          ×
+                        </button>
+                        <div
+                          className="editable-field"
+                          contentEditable
+                          suppressContentEditableWarning
+                          onBlur={(e) => handleTextEdit('text_5', e)}
+                          style={{fontSize: '32px', fontWeight: '700', color: '#333333', fontFamily: 'Pretendard', letterSpacing: '-0.32px', lineHeight: 1.5, width: '670px', marginBottom: '16px'}}>
+                          {data['text_5'] || template.elements[5].content}
+                        </div>
+                        <div
+                          className="editable-field"
+                          contentEditable
+                          suppressContentEditableWarning
+                          onBlur={(e) => handleTextEdit('text_6', e)}
+                          style={{fontSize: '20px', fontWeight: '500', color: '#666666', fontFamily: 'Pretendard', letterSpacing: '-0.2px', lineHeight: 1.5, width: '670px'}}>
+                          {data['text_6'] || template.elements[6].content}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* item 2 */}
+                    {(!data['hidden_item_2']) && (
+                      <div data-section="hidden_item_2" className="delete-section-wrapper" style={{marginBottom: '40px', position: 'relative', opacity: 1, transform: 'scale(1)', transition: 'opacity 0.3s ease, transform 0.3s ease'}}>
+                        <button
+                          onClick={() => handleDeleteSection('hidden_item_2')}
+                          className="delete-section-btn"
+                          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(0, 0, 0, 0.8)'}
+                          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'rgba(0, 0, 0, 0.6)'}
+                          style={{
+                            position: 'absolute',
+                            top: '5px',
+                            right: '5px',
+                            width: '24px',
+                            height: '24px',
+                            borderRadius: '4px',
+                            backgroundColor: 'rgba(0, 0, 0, 0.6)',
+                            color: 'white',
+                            border: 'none',
+                            cursor: 'pointer',
+                            fontSize: '16px',
+                            fontWeight: 'normal',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            zIndex: 10,
+                            opacity: 0,
+                            transition: 'opacity 0.2s ease, background-color 0.15s ease'
+                          }}
+                          title="섹션 삭제 (Ctrl+Z로 복원)">
+                          ×
+                        </button>
+                        <div
+                          className="editable-field"
+                          contentEditable
+                          suppressContentEditableWarning
+                          onBlur={(e) => handleTextEdit('text_7', e)}
+                          style={{fontSize: '32px', fontWeight: '700', color: '#333333', fontFamily: 'Pretendard', letterSpacing: '-0.32px', lineHeight: 1.5, width: '670px', marginBottom: '16px'}}>
+                          {data['text_7'] || template.elements[7].content}
+                        </div>
+                        <div
+                          className="editable-field"
+                          contentEditable
+                          suppressContentEditableWarning
+                          onBlur={(e) => handleTextEdit('text_8', e)}
+                          style={{fontSize: '20px', fontWeight: '500', color: '#666666', fontFamily: 'Pretendard', letterSpacing: '-0.2px', lineHeight: 1.5, width: '670px'}}>
+                          {data['text_8'] || template.elements[8].content}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* item 3 */}
+                    {(!data['hidden_item_3']) && (
+                      <div data-section="hidden_item_3" className="delete-section-wrapper" style={{position: 'relative', opacity: 1, transform: 'scale(1)', transition: 'opacity 0.3s ease, transform 0.3s ease'}}>
+                        <button
+                          onClick={() => handleDeleteSection('hidden_item_3')}
+                          className="delete-section-btn"
+                          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(0, 0, 0, 0.8)'}
+                          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'rgba(0, 0, 0, 0.6)'}
+                          style={{
+                            position: 'absolute',
+                            top: '5px',
+                            right: '5px',
+                            width: '24px',
+                            height: '24px',
+                            borderRadius: '4px',
+                            backgroundColor: 'rgba(0, 0, 0, 0.6)',
+                            color: 'white',
+                            border: 'none',
+                            cursor: 'pointer',
+                            fontSize: '16px',
+                            fontWeight: 'normal',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            zIndex: 10,
+                            opacity: 0,
+                            transition: 'opacity 0.2s ease, background-color 0.15s ease'
+                          }}
+                          title="섹션 삭제 (Ctrl+Z로 복원)">
+                          ×
+                        </button>
+                        <div
+                          className="editable-field"
+                          contentEditable
+                          suppressContentEditableWarning
+                          onBlur={(e) => handleTextEdit('text_9', e)}
+                          style={{fontSize: '32px', fontWeight: '700', color: '#333333', fontFamily: 'Pretendard', letterSpacing: '-0.32px', lineHeight: 1.5, width: '670px', marginBottom: '16px'}}>
+                          {data['text_9'] || template.elements[9].content}
+                        </div>
+                        <div
+                          className="editable-field"
+                          contentEditable
+                          suppressContentEditableWarning
+                          onBlur={(e) => handleTextEdit('text_10', e)}
+                          style={{fontSize: '20px', fontWeight: '500', color: '#666666', fontFamily: 'Pretendard', letterSpacing: '-0.2px', lineHeight: 1.5, width: '670px'}}>
+                          {data['text_10'] || template.elements[10].content}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              }
+
               return (
-                <div key={idx} style={{ position: 'absolute', left: `${element.x}px`, top: `${rectY}px`, width: `${element.width}px`, height: `${rectHeight}px`, backgroundColor: element.fill, borderRadius: element.cornerRadius ? `${element.cornerRadius}px` : '0', border: element.stroke ? `${element.strokeWidth}px solid ${element.stroke}` : 'none' }} />
+                <div key={idx} style={{ position: 'absolute', left: `${element.x}px`, top: `${element.y}px`, width: `${element.width}px`, height: `${element.height}px`, backgroundColor: element.fill, borderRadius: element.cornerRadius ? `${element.cornerRadius}px` : '0', border: element.stroke ? `${element.strokeWidth}px solid ${element.stroke}` : 'none' }} />
               );
             }
 
             if (element.type === 'text' && element.editable) {
+              // Core Value Type 01 컨테이너 내부 텍스트는 위에서 렌더링됨
+              if (template.id === 'corevalue01' && idx >= 5 && idx <= 10) {
+                return null;
+              }
+
               const value = data[elementId] || element.content;
               const isCenterAlignedWithoutWidth = element.textAlign === 'center' && !element.width;
-              const dynamicY = dynamicPositions[idx] !== undefined ? dynamicPositions[idx] : element.y;
-              const textStyle = {
-                left: isCenterAlignedWithoutWidth ? '50%' : `${element.x}px`,
-                top: `${dynamicY}px`,
-                fontSize: `${element.fontSize}px`,
-                fontWeight: element.fontWeight,
-                color: element.fill,
-                maxWidth: element.width ? `${element.width}px` : 'none',
-                width: element.width ? `${element.width}px` : 'auto',
-                lineHeight: element.lineHeight || 1.5,
-                fontFamily: element.fontFamily,
-                letterSpacing: element.letterSpacing ? `${element.letterSpacing}px` : 'normal',
-                textAlign: element.textAlign || 'left',
-                opacity: element.opacity || 1,
-                transform: isCenterAlignedWithoutWidth ? 'translateX(-50%)' : 'none'
-              };
-
-              // 줄 제한 적용 - 말줄임표 표시
-              if (element.maxLines) {
-                textStyle.display = '-webkit-box';
-                textStyle.WebkitLineClamp = element.maxLines;
-                textStyle.WebkitBoxOrient = 'vertical';
-                textStyle.overflow = 'hidden';
-                textStyle.textOverflow = 'ellipsis';
-                textStyle.wordBreak = 'break-word';
-              }
 
               return (
                 <div
                   key={idx}
-                  ref={el => {
-                    textRefs.current[elementId] = el;
-                    // 초기값 설정 또는 외부에서 data가 변경되었을 때만 DOM 업데이트
-                    if (el && el.innerText !== value) {
-                      // 현재 포커스된 요소가 아닐 때만 업데이트 (타이핑 중이 아닐 때)
-                      if (document.activeElement !== el) {
-                        el.innerText = value;
-                      }
-                    }
-                  }}
+                  ref={el => textRefs.current[elementId] = el}
                   className="editable-field absolute"
                   contentEditable
                   suppressContentEditableWarning
-                  onInput={(e) => handleTextInput(elementId, e, element)}
-                  onBlur={(e) => handleTextEdit(elementId, e, element)}
-                  style={textStyle}
-                />
+                  onBlur={(e) => handleTextEdit(elementId, e)}
+                  style={{ left: isCenterAlignedWithoutWidth ? '50%' : `${element.x}px`, top: `${element.y}px`, fontSize: `${element.fontSize}px`, fontWeight: element.fontWeight, color: element.fill, maxWidth: element.width ? `${element.width}px` : 'none', width: element.width ? `${element.width}px` : 'auto', lineHeight: element.lineHeight || 1.5, fontFamily: element.fontFamily, letterSpacing: element.letterSpacing ? `${element.letterSpacing}px` : 'normal', textAlign: element.textAlign || 'left', opacity: element.opacity || 1, transform: isCenterAlignedWithoutWidth ? 'translateX(-50%)' : 'none', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                  {value}
+                </div>
               );
             }
 
             if (element.type === 'text' && !element.editable) {
               const isCenterAlignedWithoutWidth = element.textAlign === 'center' && !element.width;
-              const dynamicY = dynamicPositions[idx] !== undefined ? dynamicPositions[idx] : element.y;
-              const textStyle = {
-                left: isCenterAlignedWithoutWidth ? '50%' : `${element.x}px`,
-                top: `${dynamicY}px`,
-                fontSize: `${element.fontSize}px`,
-                fontWeight: element.fontWeight,
-                color: element.fill,
-                maxWidth: element.width ? `${element.width}px` : 'none',
-                width: element.width ? `${element.width}px` : 'auto',
-                lineHeight: element.lineHeight || 1.5,
-                fontFamily: element.fontFamily,
-                letterSpacing: element.letterSpacing ? `${element.letterSpacing}px` : 'normal',
-                textAlign: element.textAlign || 'left',
-                opacity: element.opacity || 1,
-                transform: isCenterAlignedWithoutWidth ? 'translateX(-50%)' : 'none'
-              };
-
-              // 줄 제한 적용 - 말줄임표 표시
-              if (element.maxLines) {
-                textStyle.display = '-webkit-box';
-                textStyle.WebkitLineClamp = element.maxLines;
-                textStyle.WebkitBoxOrient = 'vertical';
-                textStyle.overflow = 'hidden';
-                textStyle.textOverflow = 'ellipsis';
-                textStyle.wordBreak = 'break-word';
-              }
-
               return (
-                <div key={idx} ref={el => textRefs.current[elementId] = el} className="absolute" style={textStyle}>
+                <div key={idx} className="absolute whitespace-pre-wrap" style={{ left: isCenterAlignedWithoutWidth ? '50%' : `${element.x}px`, top: `${element.y}px`, fontSize: `${element.fontSize}px`, fontWeight: element.fontWeight, color: element.fill, maxWidth: element.width ? `${element.width}px` : 'none', width: element.width ? `${element.width}px` : 'auto', lineHeight: element.lineHeight || 1.5, fontFamily: element.fontFamily, letterSpacing: element.letterSpacing ? `${element.letterSpacing}px` : 'normal', textAlign: element.textAlign || 'left', opacity: element.opacity || 1, transform: isCenterAlignedWithoutWidth ? 'translateX(-50%)' : 'none' }}>
                   {element.content}
                 </div>
               );
@@ -1641,12 +1865,9 @@
     }
 
     // ==================== 템플릿 썸네일 (16:9 미니 프리뷰) ====================
-    function TemplateThumbnail({ template, data, cachedLayout, slideId }) {
+    function TemplateThumbnail({ template, data }) {
       const containerRef = useRef(null);
-      const textRefs = useRef({});
       const [thumbnailScale, setThumbnailScale] = useState(0.1);
-      const [dynamicHeights, setDynamicHeights] = useState({});
-      const [dynamicPositions, setDynamicPositions] = useState({});
 
       useEffect(() => {
         if (containerRef.current) {
@@ -1655,17 +1876,6 @@
           setThumbnailScale(scale);
         }
       }, []);
-
-      // cachedLayout이 있으면 사용, 없으면 빈 객체
-      useEffect(() => {
-        if (cachedLayout) {
-          setDynamicHeights(cachedLayout.heights || {});
-          setDynamicPositions(cachedLayout.positions || {});
-        } else {
-          setDynamicHeights({});
-          setDynamicPositions({});
-        }
-      }, [cachedLayout]);
 
       if (!template) return <div className="thumbnail-preview bg-slate-100"></div>;
 
@@ -1681,50 +1891,45 @@
               top: 0,
               left: 0
             }}>
-              {template.elements.map((element, idx) => {
+              {template.elements.slice(0, 15).map((element, idx) => {
                 const elementId = `${element.type}_${idx}`;
 
                 if (element.type === 'rect') {
-                  const rectHeight = dynamicHeights[idx] || element.height;
-                  const rectY = dynamicPositions[idx] !== undefined ? dynamicPositions[idx] : element.y;
-                  return <div key={idx} style={{ position: 'absolute', left: `${element.x}px`, top: `${rectY}px`, width: `${element.width}px`, height: `${rectHeight}px`, backgroundColor: element.fill, borderRadius: element.cornerRadius ? `${element.cornerRadius}px` : '0', border: element.stroke ? `${element.strokeWidth}px solid ${element.stroke}` : 'none' }} />;
+                  return <div key={idx} style={{ position: 'absolute', left: `${element.x}px`, top: `${element.y}px`, width: `${element.width}px`, height: `${element.height}px`, backgroundColor: element.fill, borderRadius: element.cornerRadius ? `${element.cornerRadius}px` : '0', border: element.stroke ? `${element.strokeWidth}px solid ${element.stroke}` : 'none' }} />;
                 }
                 if (element.type === 'text') {
                   // 실시간 편집 데이터 반영
                   const content = element.editable && data && data[elementId] !== undefined ? data[elementId] : element.content;
                   const isCenterAlignedWithoutWidth = element.textAlign === 'center' && !element.width;
-                  const dynamicY = dynamicPositions[idx] !== undefined ? dynamicPositions[idx] : element.y;
 
-                  const textStyle = {
-                    position: 'absolute',
-                    left: isCenterAlignedWithoutWidth ? '50%' : `${element.x}px`,
-                    transform: isCenterAlignedWithoutWidth ? 'translateX(-50%)' : 'none',
-                    top: `${dynamicY}px`,
-                    fontSize: `${element.fontSize}px`,
-                    fontWeight: element.fontWeight,
-                    color: element.fill,
-                    fontFamily: element.fontFamily,
-                    letterSpacing: element.letterSpacing ? `${element.letterSpacing}px` : 'normal',
-                    lineHeight: element.lineHeight || 1.5,
-                    opacity: element.opacity || 1,
-                    whiteSpace: 'pre-wrap',
-                    width: element.width ? `${element.width}px` : 'auto',
-                    textAlign: element.textAlign || 'left',
-                    maxWidth: element.width ? `${element.width}px` : 'none'
-                  };
-
-                  // 줄 제한 적용 - 말줄임표 표시
-                  if (element.maxLines) {
-                    textStyle.display = '-webkit-box';
-                    textStyle.WebkitLineClamp = element.maxLines;
-                    textStyle.WebkitBoxOrient = 'vertical';
-                    textStyle.overflow = 'hidden';
-                    textStyle.textOverflow = 'ellipsis';
-                    textStyle.wordBreak = 'break-word';
-                  }
+                  // maxLines 제한을 위한 추가 스타일
+                  const maxLinesStyle = element.maxLines ? {
+                    display: '-webkit-box',
+                    WebkitLineClamp: element.maxLines,
+                    WebkitBoxOrient: 'vertical',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis'
+                  } : {};
 
                   return (
-                    <div key={idx} ref={el => textRefs.current[elementId] = el} style={textStyle}>{content}</div>
+                    <div key={idx} style={{
+                      position: 'absolute',
+                      left: isCenterAlignedWithoutWidth ? '50%' : `${element.x}px`,
+                      transform: isCenterAlignedWithoutWidth ? 'translateX(-50%)' : 'none',
+                      top: `${element.y}px`,
+                      fontSize: `${element.fontSize}px`,
+                      fontWeight: element.fontWeight,
+                      color: element.fill,
+                      fontFamily: element.fontFamily,
+                      letterSpacing: element.letterSpacing ? `${element.letterSpacing}px` : 'normal',
+                      opacity: element.opacity || 1,
+                      whiteSpace: 'pre-wrap',
+                      width: element.width ? `${element.width}px` : 'auto',
+                      textAlign: element.textAlign || 'left',
+                      maxWidth: element.width ? `${element.width}px` : 'none',
+                      lineHeight: element.lineHeight || 1.5,
+                      ...maxLinesStyle
+                    }}>{content}</div>
                   );
                 }
                 if (element.type === 'image') {
@@ -1744,6 +1949,5 @@
 
     ReactDOM.render(<PresentationBuilder />, document.getElementById('root'));
   </script>
-
 </body>
 </html>
