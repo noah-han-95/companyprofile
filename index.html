@@ -828,10 +828,10 @@
         penId: '0eUOG',
         elements: [
           { type: 'rect', x: 0, y: 0, width: 1920, height: 1080, fill: '#FFFFFF' },
-          { type: 'text', x: 120, y: 319, content: '상세한 설명이 들어갑니다.\n서비스의 핵심 가치를 전달합니다.', fontSize: 48, fontWeight: '500', fill: '#666666', fontFamily: 'Pretendard', letterSpacing: -0.48, lineHeight: 1.5, width: 700, editable: true },
+          { type: 'text', x: 120, y: 319, content: '이곳에 프로젝트의 핵심 가치나 요약 설명을 작성합니다.\n최대 2줄 이내로 작성하는 것을 권장합니다.', fontSize: 48, fontWeight: '500', fill: '#666666', fontFamily: 'Pretendard', letterSpacing: -0.48, lineHeight: 1.5, width: 1100, editable: true, maxLines: 2 },
           { type: 'rect', x: 820, y: 0, width: 1100, height: 1080, fill: '#F7F7F7' },
-          { type: 'text', x: 120, y: 177, content: '프로젝트 소개서 ', fontSize: 90, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.9, lineHeight: 1.3, width: 984, editable: true },
-          { type: 'text', x: 120, y: 100, content: '서비스 소개', fontSize: 48, fontWeight: '700', fill: '#BBBBBB', fontFamily: 'Pretendard', letterSpacing: -0.48, lineHeight: 1.3, editable: true },
+          { type: 'text', x: 120, y: 177, content: '메인 타이틀을 입력하세요\n최대 2줄까지 입력 가능합니다.', fontSize: 90, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.9, lineHeight: 1.3, width: 1100, editable: true, maxLines: 2 },
+          { type: 'text', x: 120, y: 100, content: '카테고리 입력', fontSize: 48, fontWeight: '700', fill: '#BBBBBB', fontFamily: 'Pretendard', letterSpacing: -0.48, lineHeight: 1.3, editable: true, maxLines: 1 },
           { type: 'image', x: 120, y: 940, width: 216.89, height: 36.83, url: 'assets/icons/yeogi-logo.svg' }
         ]
       },
@@ -843,9 +843,9 @@
         elements: [
           { type: 'rect', x: 0, y: 0, width: 1920, height: 1080, fill: '#FFFFFF' },
           { type: 'rect', x: 820, y: 0, width: 1100, height: 1080, fill: '#F7F7F7' },
-          { type: 'text', x: 120, y: 177, content: '서비스의 소개서 메인 장표입니다.\n서비스의 핵심 가치를 함축적으로\n전달합니다.', fontSize: 90, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.9, lineHeight: 1.3, width: 1367, editable: true },
+          { type: 'text', x: 120, y: 177, content: '메인 타이틀을 입력하세요\n최대 3줄까지 입력 가능합니다.', fontSize: 90, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.9, lineHeight: 1.3, width: 1367, editable: true, maxLines: 3 },
           { type: 'image', x: 120, y: 940, width: 216.89, height: 36.83, url: 'assets/icons/yeogi-logo.svg' },
-          { type: 'text', x: 120, y: 100, content: '서비스 소개', fontSize: 48, fontWeight: '700', fill: '#BBBBBB', fontFamily: 'Pretendard', letterSpacing: -0.48, lineHeight: 1.3, editable: true }
+          { type: 'text', x: 120, y: 100, content: '카테고리 입력', fontSize: 48, fontWeight: '700', fill: '#BBBBBB', fontFamily: 'Pretendard', letterSpacing: -0.48, lineHeight: 1.3, editable: true, maxLines: 1 }
         ]
       },
       maincover03: {
@@ -855,8 +855,8 @@
         penId: 'XtSqT',
         elements: [
           { type: 'rect', x: 0, y: 0, width: 1920, height: 1080, fill: '#f7f7f7' },
-          { type: 'text', x: 660, y: 395, content: '프로젝트 소개서 ', fontSize: 90, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.9, lineHeight: 1.3, textAlign: 'center', editable: true },
-          { type: 'text', x: 434, y: 537, content: '상세한 설명이 들어갑니다. \n서비스의 핵심 가치를 전달합니다.', fontSize: 48, fontWeight: '500', fill: '#666666', fontFamily: 'Pretendard', letterSpacing: -0.48, lineHeight: 1.5, width: 1052, textAlign: 'center', editable: true },
+          { type: 'text', x: 660, y: 395, content: '메인 타이틀 최대 1줄', fontSize: 90, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.9, lineHeight: 1.3, textAlign: 'center', editable: true, maxLines: 1, width: 1200 },
+          { type: 'text', x: 434, y: 537, content: '이곳에 프로젝트의 핵심 가치나 요약 설명을 작성합니다.\n최대 2줄 이내로 작성하는 것을 권장합니다.', fontSize: 48, fontWeight: '500', fill: '#666666', fontFamily: 'Pretendard', letterSpacing: -0.48, lineHeight: 1.5, width: 1200, textAlign: 'center', editable: true, maxLines: 2 },
           { type: 'image', x: 852, y: 940, width: 216.89, height: 36.83, url: 'assets/icons/yeogi-logo.svg' }
         ]
       }
@@ -1398,6 +1398,84 @@
         return () => window.removeEventListener('keydown', handleKeyDown);
       }, [undoStack]);
 
+
+      // Main Cover 전용 렌더링 (Type 01, 02, 03)
+      if (template.id === 'maincover01' || template.id === 'maincover02' || template.id === 'maincover03') {
+        return (
+          <div className="w-full h-full relative" style={{ backgroundColor: template.elements[0]?.fill || '#FFFFFF' }}>
+            {template.elements.map((element, idx) => {
+              const elementId = `${element.type}_${idx}`;
+
+              // 배경 rect 렌더링
+              if (element.type === 'rect') {
+                return <div key={idx} style={{ position: 'absolute', left: `${element.x}px`, top: `${element.y}px`, width: `${element.width}px`, height: `${element.height}px`, backgroundColor: element.fill }} />;
+              }
+
+              // 로고 이미지 렌더링
+              if (element.type === 'image' && !element.editable) {
+                return (
+                  <div key={idx} className="absolute" style={{ left: `${element.x}px`, top: `${element.y}px`, width: `${element.width}px`, height: `${element.height}px` }}>
+                    <img src={element.url} alt="" className="w-full h-full object-contain" />
+                  </div>
+                );
+              }
+
+              return null;
+            })}
+
+            {/* Flexbox 텍스트 컨테이너 */}
+            <div style={{
+              position: 'absolute',
+              left: template.id === 'maincover03' ? '50%' : '120px',
+              top: template.id === 'maincover03' ? '395px' : '100px',
+              transform: template.id === 'maincover03' ? 'translateX(-50%)' : 'none',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: template.id === 'maincover03' ? '25px' : '0px'
+            }}>
+              {template.elements
+                .map((el, originalIdx) => ({ el, originalIdx }))
+                .filter(({ el }) => el.type === 'text' && el.editable)
+                .sort((a, b) => a.el.y - b.el.y)
+                .map(({ el: element, originalIdx }, textIdx) => {
+                  const elementId = `text_${originalIdx}`;
+                  const value = data[elementId] || element.content;
+
+                  // Type 1, 2의 간격 계산: 카테고리 → 타이틀 → 본문
+                  let marginBottom = '0px';
+                  if (template.id === 'maincover01' || template.id === 'maincover02') {
+                    if (textIdx === 0) marginBottom = '12px'; // 카테고리 다음
+                    if (textIdx === 1) marginBottom = '30px'; // 타이틀 다음
+                  }
+
+                  return (
+                    <div
+                      key={elementId}
+                      className="editable-field"
+                      contentEditable
+                      suppressContentEditableWarning
+                      onBlur={(e) => handleTextEdit(elementId, e)}
+                      style={{
+                        fontSize: `${element.fontSize}px`,
+                        fontWeight: element.fontWeight,
+                        color: element.fill,
+                        fontFamily: element.fontFamily,
+                        letterSpacing: `${element.letterSpacing}px`,
+                        lineHeight: element.lineHeight,
+                        width: element.width ? `${element.width}px` : 'auto',
+                        textAlign: element.textAlign || 'left',
+                        whiteSpace: 'pre-wrap',
+                        wordBreak: 'break-word',
+                        marginBottom: marginBottom
+                      }}>
+                      {value}
+                    </div>
+                  );
+                })}
+            </div>
+          </div>
+        );
+      }
 
       // Core Value Type 01 전용 렌더링
       if (template.id === 'corevalue01') {
