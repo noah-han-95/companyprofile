@@ -628,11 +628,11 @@
         ]
       },
 
-      // Section Divider Templates (3개)
+      // Section Cover Templates (3개)
       section01: {
         id: 'section01',
         name: 'Type 01',
-        category: 'Section',
+        category: 'Section Cover',
         penId: '30Xqu',
         elements: [
           { type: 'rect', x: 0, y: 0, width: 1920, height: 1080, fill: '#FFFFFF' },
@@ -646,7 +646,7 @@
       section02: {
         id: 'section02',
         name: 'Type 02',
-        category: 'Section',
+        category: 'Section Cover',
         penId: 'iBM3X',
         elements: [
           { type: 'rect', x: 0, y: 0, width: 1920, height: 1080, fill: '#FFFFFF' },
@@ -660,7 +660,7 @@
       section03: {
         id: 'section03',
         name: 'Type 03',
-        category: 'Section',
+        category: 'Section Cover',
         penId: 'wY8Zs',
         elements: [
           { type: 'rect', x: 0, y: 0, width: 1920, height: 1080, fill: '#333333' },
@@ -766,7 +766,7 @@
         penId: 'roD4k',
         elements: [
           { type: 'rect', x: 0, y: 0, width: 1920, height: 1080, fill: '#FFFFFF' },
-          { type: 'image', x: 683, y: 493, width: 554, height: 94, placeholder: true, editable: true },
+          { type: 'image', x: 683, y: 450, width: 554, height: 94, url: 'assets/icons/yeogi-logo.svg' },
           { type: 'text', x: 515, y: 912, content: '자세한 사항은 영업 담당자에게 문의해주세요.', fontSize: 48, fontWeight: '700', fill: '#BBBBBB', fontFamily: 'Pretendard', letterSpacing: -0.48, lineHeight: 1.3, editable: true }
         ]
       },
@@ -777,10 +777,10 @@
         penId: 'OshxU',
         elements: [
           { type: 'rect', x: 0, y: 0, width: 1920, height: 1080, fill: '#FFFFFF' },
-          { type: 'text', x: 120, y: 100, content: '서비스 소개', fontSize: 48, fontWeight: '700', fill: '#BBBBBB', fontFamily: 'Pretendard', letterSpacing: -0.48, lineHeight: 1.3, editable: true },
-          { type: 'text', x: 120, y: 177, content: '프로젝트 소개서', fontSize: 90, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.9, lineHeight: 1.3, width: 984, editable: true },
-          { type: 'text', x: 120, y: 319, content: '상세한 설명이 들어갑니다.\n서비스의 핵심 가치를 전달합니다.', fontSize: 32, fontWeight: '500', fill: '#666666', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.5, width: 700, editable: true },
-          { type: 'rect', x: 820, y: 0, width: 1100, height: 1080, fill: '#F7F7F7' }
+          { type: 'rect', x: 820, y: 0, width: 1100, height: 1080, fill: '#F7F7F7' },
+          { type: 'text', x: 120, y: 177, content: '메인 타이틀을 입력하세요\n최대 3줄까지 입력 가능합니다.', fontSize: 90, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.9, lineHeight: 1.3, width: 1367, editable: true, maxLines: 3 },
+          { type: 'image', x: 120, y: 940, width: 216.89, height: 36.83, url: 'assets/icons/yeogi-logo.svg' },
+          { type: 'text', x: 120, y: 100, content: '카테고리 입력', fontSize: 48, fontWeight: '700', fill: '#BBBBBB', fontFamily: 'Pretendard', letterSpacing: -0.48, lineHeight: 1.3, editable: true, maxLines: 1 }
         ]
       },
       finalcover03: {
@@ -789,9 +789,10 @@
         category: 'Final Cover',
         penId: 'NQa5K',
         elements: [
-          { type: 'rect', x: 0, y: 0, width: 1920, height: 1080, fill: '#F7F7F7' },
-          { type: 'text', x: 660, y: 414, content: '프로젝트 소개서', fontSize: 90, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.9, lineHeight: 1.3, textAlign: 'center', editable: true },
-          { type: 'text', x: 434, y: 556, content: '상세한 설명이 들어갑니다.서비스의 핵심 가치를 전달합니다.', fontSize: 32, fontWeight: '500', fill: '#666666', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.5, width: 1052, textAlign: 'center', editable: true }
+          { type: 'rect', x: 0, y: 0, width: 1920, height: 1080, fill: '#f7f7f7' },
+          { type: 'text', x: 660, y: 395, content: '메인 타이틀 최대 1줄', fontSize: 90, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.9, lineHeight: 1.3, textAlign: 'center', editable: true, maxLines: 1, width: 1200 },
+          { type: 'text', x: 434, y: 537, content: '최대 1줄 이내로 작성하는 것을 권장합니다.', fontSize: 48, fontWeight: '500', fill: '#666666', fontFamily: 'Pretendard', letterSpacing: -0.48, lineHeight: 1.5, width: 1200, textAlign: 'center', editable: true, maxLines: 1 },
+          { type: 'image', x: 852, y: 940, width: 216.89, height: 36.83, url: 'assets/icons/yeogi-logo.svg' }
         ]
       },
 
@@ -856,7 +857,7 @@
         elements: [
           { type: 'rect', x: 0, y: 0, width: 1920, height: 1080, fill: '#f7f7f7' },
           { type: 'text', x: 660, y: 395, content: '메인 타이틀 최대 1줄', fontSize: 90, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.9, lineHeight: 1.3, textAlign: 'center', editable: true, maxLines: 1, width: 1200 },
-          { type: 'text', x: 434, y: 537, content: '이곳에 프로젝트의 핵심 가치나 요약 설명을 작성합니다.\n최대 2줄 이내로 작성하는 것을 권장합니다.', fontSize: 48, fontWeight: '500', fill: '#666666', fontFamily: 'Pretendard', letterSpacing: -0.48, lineHeight: 1.5, width: 1200, textAlign: 'center', editable: true, maxLines: 2 },
+          { type: 'text', x: 434, y: 537, content: '최대 1줄 이내로 작성하는 것을 권장합니다.', fontSize: 48, fontWeight: '500', fill: '#666666', fontFamily: 'Pretendard', letterSpacing: -0.48, lineHeight: 1.5, width: 1200, textAlign: 'center', editable: true, maxLines: 1 },
           { type: 'image', x: 852, y: 940, width: 216.89, height: 36.83, url: 'assets/icons/yeogi-logo.svg' }
         ]
       }
@@ -954,6 +955,28 @@
         };
         setSlides(newSlides);
         showStatus('슬라이드가 초기화되었습니다! 🔄');
+      };
+
+      // 페이지 번호 자동 계산 (Main Cover, Final Cover, Index 제외)
+      const getPageNumber = (slideIndex) => {
+        if (!slides[slideIndex]) return '';
+
+        // Main Cover, Final Cover, Index 개수만 제외하고 순차 카운트
+        let pageNumber = 1;
+        for (let i = 0; i < slideIndex; i++) {
+          const templateId = slides[i].templateId;
+          if (!templateId.startsWith('maincover') && !templateId.startsWith('finalcover') && !templateId.startsWith('index')) {
+            pageNumber++;
+          }
+        }
+
+        // 현재 슬라이드가 Main Cover, Final Cover, Index면 빈 문자열 반환
+        const currentTemplateId = slides[slideIndex].templateId;
+        if (currentTemplateId.startsWith('maincover') || currentTemplateId.startsWith('finalcover') || currentTemplateId.startsWith('index')) {
+          return '';
+        }
+
+        return `P${pageNumber}`;
       };
 
       const duplicateSlide = () => {
@@ -1260,7 +1283,7 @@
                         showTopIndicator ? 'drop-indicator-top' : ''
                       } ${showBottomIndicator ? 'drop-indicator-bottom' : ''}`}
                     >
-                      <TemplateThumbnail template={template} data={slide.data} />
+                      <TemplateThumbnail template={template} data={slide.data} slideIndex={idx} slides={slides} />
                       <div className="text-xs font-semibold text-slate-600 text-center truncate mt-2">{idx + 1}. {template?.category}</div>
                     </div>
                   );
@@ -1270,7 +1293,7 @@
 
             <div ref={containerRef} className={`flex-1 ${theme.workspaceBg} flex flex-col items-center justify-center relative overflow-hidden p-1 pb-20`}>
               <div ref={slideRef} className={`${theme.slideBg} shadow-2xl relative overflow-hidden border ${theme.border}`} style={{ width: '1920px', height: '1080px', transform: `scale(${scale})`, flexShrink: 0, transformOrigin: 'center center' }}>
-                {currentTemplate && <SlideCanvas template={currentTemplate} data={currentSlide.data} onUpdate={updateSlideData} onImageUpload={handleImageUpload} />}
+                {currentTemplate && <SlideCanvas template={currentTemplate} data={currentSlide.data} onUpdate={updateSlideData} onImageUpload={handleImageUpload} currentSlideIndex={currentSlideIndex} slides={slides} />}
               </div>
 
               <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-white/95 backdrop-blur-md p-2 rounded-2xl shadow-[0_10px_50px_rgba(0,0,0,0.1)] border border-white/50 z-[100] w-max max-w-[98vw] overflow-x-auto no-scrollbar">
@@ -1349,11 +1372,31 @@
     }
 
     // ==================== 슬라이드 캔버스 렌더러 ====================
-    function SlideCanvas({ template, data, onUpdate, onImageUpload }) {
+    function SlideCanvas({ template, data, onUpdate, onImageUpload, currentSlideIndex, slides }) {
       const textRefs = useRef({});
       const containerRef = useRef(null);
       const [, forceRender] = useState(0);
       const [undoStack, setUndoStack] = useState([]);
+
+      // 페이지 번호 계산 함수
+      const getPageNumber = (slideIndex) => {
+        if (!slides || !slides[slideIndex]) return '';
+
+        let pageNumber = 1;
+        for (let i = 0; i < slideIndex; i++) {
+          const templateId = slides[i].templateId;
+          if (!templateId.startsWith('maincover') && !templateId.startsWith('finalcover') && !templateId.startsWith('index')) {
+            pageNumber++;
+          }
+        }
+
+        const currentTemplateId = slides[slideIndex].templateId;
+        if (currentTemplateId.startsWith('maincover') || currentTemplateId.startsWith('finalcover') || currentTemplateId.startsWith('index')) {
+          return '';
+        }
+
+        return `P${pageNumber}`;
+      };
 
       const handleTextEdit = (elementId, e) => {
         onUpdate(elementId, e.target.innerText);
@@ -1411,8 +1454,8 @@
       }, [undoStack]);
 
 
-      // Main Cover 전용 렌더링 (Type 01, 02, 03)
-      if (template.id === 'maincover01' || template.id === 'maincover02' || template.id === 'maincover03') {
+      // Main Cover & Final Cover Type 02, 03 전용 렌더링 (Type 01, 02, 03)
+      if (template.id === 'maincover01' || template.id === 'maincover02' || template.id === 'maincover03' || template.id === 'finalcover02' || template.id === 'finalcover03') {
         return (
           <div className="w-full h-full relative" style={{ backgroundColor: template.elements[0]?.fill || '#FFFFFF' }}>
             {template.elements.map((element, idx) => {
@@ -1438,12 +1481,12 @@
             {/* Flexbox 텍스트 컨테이너 */}
             <div style={{
               position: 'absolute',
-              left: template.id === 'maincover03' ? '50%' : '120px',
-              top: template.id === 'maincover03' ? '395px' : '100px',
-              transform: template.id === 'maincover03' ? 'translateX(-50%)' : 'none',
+              left: (template.id === 'maincover03' || template.id === 'finalcover03') ? '50%' : '120px',
+              top: (template.id === 'maincover03' || template.id === 'finalcover03') ? '395px' : '100px',
+              transform: (template.id === 'maincover03' || template.id === 'finalcover03') ? 'translateX(-50%)' : 'none',
               display: 'flex',
               flexDirection: 'column',
-              gap: template.id === 'maincover03' ? '25px' : '0px'
+              gap: (template.id === 'maincover03' || template.id === 'finalcover03') ? '25px' : '0px'
             }}>
               {template.elements
                 .map((el, originalIdx) => ({ el, originalIdx }))
@@ -1453,9 +1496,9 @@
                   const elementId = `text_${originalIdx}`;
                   const value = data[elementId] || element.content;
 
-                  // Type 1, 2의 간격 계산: 카테고리 → 타이틀 → 본문
+                  // Type 1, 2 & Final Cover 2의 간격 계산: 카테고리 → 타이틀 → 본문
                   let marginBottom = '0px';
-                  if (template.id === 'maincover01' || template.id === 'maincover02') {
+                  if (template.id === 'maincover01' || template.id === 'maincover02' || template.id === 'finalcover02') {
                     if (textIdx === 0) marginBottom = '12px'; // 카테고리 다음
                     if (textIdx === 1) marginBottom = '30px'; // 타이틀 다음
                   }
@@ -1723,17 +1766,22 @@
               </div>
             </div>
 
-            {/* 푸터 */}
-            <div className="absolute whitespace-pre-wrap" style={{ left: '260px', top: '990px', fontSize: '20px', fontWeight: '500', color: '#BBBBBB', fontFamily: 'Pretendard', letterSpacing: '-0.2px', lineHeight: 1.4 }}>
-              {template.elements[11].content}
+            {/* 푸터 - 로고 */}
+            <div className="absolute" style={{ left: '120px', top: '991px', width: '118px', height: '20px' }}>
+              <img src={template.elements[11].url} alt="" className="w-full h-full object-contain" />
             </div>
+
+            {/* 푸터 - 카피라이트 */}
+            <div className="absolute whitespace-pre-wrap" style={{ left: '260px', top: '990px', fontSize: '20px', fontWeight: '500', color: '#BBBBBB', fontFamily: 'Pretendard', letterSpacing: '-0.2px', lineHeight: 1.4 }}>
+              {template.elements[12].content}
+            </div>
+
+            {/* 푸터 - 페이지 번호 (자동 계산) */}
             <div
               className="editable-field absolute"
-              contentEditable
-              suppressContentEditableWarning
-              onBlur={(e) => handleTextEdit('text_12', e)}
-              style={{ left: '1780px', top: '990px', fontSize: '20px', fontWeight: '500', color: '#999999', fontFamily: 'Pretendard', letterSpacing: '-0.2px', lineHeight: 1.4 }}>
-              {data['text_12'] || template.elements[12].content}
+              contentEditable={false}
+              style={{ left: '1680px', top: '990px', fontSize: '20px', fontWeight: '500', color: '#999999', fontFamily: 'Pretendard', letterSpacing: '-0.2px', lineHeight: 1.4, textAlign: 'right', width: '120px', cursor: 'default' }}>
+              {getPageNumber(currentSlideIndex)}
             </div>
           </div>
         );
@@ -1926,7 +1974,15 @@
                 return null;
               }
 
-              const value = data[elementId] || element.content;
+              // 페이지 번호 자동 계산 (x:1680, y:990 위치)
+              const isPageNumber = element.x === 1680 && element.y === 990;
+              const autoPageNumber = isPageNumber ? getPageNumber(currentSlideIndex) : null;
+
+              let displayValue = data[elementId] || element.content;
+              if (autoPageNumber !== null) {
+                displayValue = autoPageNumber;
+              }
+
               const isCenterAlignedWithoutWidth = element.textAlign === 'center' && !element.width;
 
               return (
@@ -1934,11 +1990,11 @@
                   key={idx}
                   ref={el => textRefs.current[elementId] = el}
                   className="editable-field absolute"
-                  contentEditable
+                  contentEditable={!isPageNumber}
                   suppressContentEditableWarning
                   onBlur={(e) => handleTextEdit(elementId, e)}
-                  style={{ left: isCenterAlignedWithoutWidth ? '50%' : `${element.x}px`, top: `${element.y}px`, fontSize: `${element.fontSize}px`, fontWeight: element.fontWeight, color: element.fill, maxWidth: element.width ? `${element.width}px` : 'none', width: element.width ? `${element.width}px` : 'auto', lineHeight: element.lineHeight || 1.5, fontFamily: element.fontFamily, letterSpacing: element.letterSpacing ? `${element.letterSpacing}px` : 'normal', textAlign: element.textAlign || 'left', opacity: element.opacity || 1, transform: isCenterAlignedWithoutWidth ? 'translateX(-50%)' : 'none', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
-                  {value}
+                  style={{ left: isCenterAlignedWithoutWidth ? '50%' : `${element.x}px`, top: `${element.y}px`, fontSize: `${element.fontSize}px`, fontWeight: element.fontWeight, color: element.fill, maxWidth: element.width ? `${element.width}px` : 'none', width: element.width ? `${element.width}px` : 'auto', lineHeight: element.lineHeight || 1.5, fontFamily: element.fontFamily, letterSpacing: element.letterSpacing ? `${element.letterSpacing}px` : 'normal', textAlign: element.textAlign || 'left', opacity: element.opacity || 1, transform: isCenterAlignedWithoutWidth ? 'translateX(-50%)' : 'none', whiteSpace: 'pre-wrap', wordBreak: 'break-word', cursor: isPageNumber ? 'default' : 'text' }}>
+                  {displayValue}
                 </div>
               );
             }
@@ -1985,7 +2041,7 @@
     }
 
     // ==================== 템플릿 썸네일 (16:9 미니 프리뷰) ====================
-    function TemplateThumbnail({ template, data }) {
+    function TemplateThumbnail({ template, data, slideIndex, slides }) {
       const containerRef = useRef(null);
       const [thumbnailScale, setThumbnailScale] = useState(0.1);
 
@@ -1996,6 +2052,26 @@
           setThumbnailScale(scale);
         }
       }, []);
+
+      // 페이지 번호 계산 함수 (썸네일용)
+      const getPageNumber = (idx) => {
+        if (!slides || !slides[idx]) return '';
+
+        let pageNumber = 1;
+        for (let i = 0; i < idx; i++) {
+          const templateId = slides[i].templateId;
+          if (!templateId.startsWith('maincover') && !templateId.startsWith('finalcover') && !templateId.startsWith('index')) {
+            pageNumber++;
+          }
+        }
+
+        const currentTemplateId = slides[idx].templateId;
+        if (currentTemplateId.startsWith('maincover') || currentTemplateId.startsWith('finalcover') || currentTemplateId.startsWith('index')) {
+          return '';
+        }
+
+        return `P${pageNumber}`;
+      };
 
       if (!template) return <div className="thumbnail-preview bg-slate-100"></div>;
 
@@ -2018,8 +2094,16 @@
                   return <div key={idx} style={{ position: 'absolute', left: `${element.x}px`, top: `${element.y}px`, width: `${element.width}px`, height: `${element.height}px`, backgroundColor: element.fill, borderRadius: element.cornerRadius ? `${element.cornerRadius}px` : '0', border: element.stroke ? `${element.strokeWidth}px solid ${element.stroke}` : 'none' }} />;
                 }
                 if (element.type === 'text') {
+                  // 페이지 번호 자동 계산 (x:1680, y:990 위치)
+                  const isPageNumber = element.x === 1680 && element.y === 990;
+                  const autoPageNumber = isPageNumber && slideIndex !== undefined ? getPageNumber(slideIndex) : null;
+
                   // 실시간 편집 데이터 반영
-                  const content = element.editable && data && data[elementId] !== undefined ? data[elementId] : element.content;
+                  let content = element.editable && data && data[elementId] !== undefined ? data[elementId] : element.content;
+                  if (autoPageNumber !== null) {
+                    content = autoPageNumber;
+                  }
+
                   const isCenterAlignedWithoutWidth = element.textAlign === 'center' && !element.width;
 
                   // maxLines 제한을 위한 추가 스타일
