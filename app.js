@@ -5,6 +5,7 @@ function PresentationBuilder() {
   const [draggedIndex, setDraggedIndex] = useState(null);
   const [dropTargetIndex, setDropTargetIndex] = useState(null);
   const [showPdfUpload, setShowPdfUpload] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(true);
 
   // 기본 슬라이드 (data는 항상 초기화, templateId는 localStorage에서 복원)
   const defaultSlides = [
@@ -24,9 +25,13 @@ function PresentationBuilder() {
     if (savedTypes) {
       try {
         const typeMap = JSON.parse(savedTypes);
-        // 슬라이드 수가 일치할 때만 복원
-        if (Object.keys(typeMap).length === defaultSlides.length) {
+        const savedIds = Object.keys(typeMap);
+        if (savedIds.length === defaultSlides.length) {
+          // 기본 슬라이드 수와 같으면 기존 방식으로 복원
           return defaultSlides.map(s => ({ ...s, templateId: typeMap[s.id] || s.templateId, data: {} }));
+        } else if (savedIds.length > defaultSlides.length) {
+          // AI가 추가한 슬라이드가 있는 경우 — 전체 구조 복원
+          return savedIds.map(id => ({ id, templateId: typeMap[id], data: {} }));
         }
       } catch(e) {}
     }
@@ -34,7 +39,7 @@ function PresentationBuilder() {
   });
   const [currentSlideIndex, setCurrentSlideIndex] = useState(() => {
     const saved = localStorage.getItem('transformtrack-currentSlideIndex');
-    return saved ? Math.min(parseInt(saved, 10), 9) : 0;
+    return saved ? parseInt(saved, 10) : 0;
   });
   const [showTemplateModal, setShowTemplateModal] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState(null);
@@ -225,6 +230,18 @@ function PresentationBuilder() {
     setSlides(newSlides);
   };
 
+  // AI 온보딩 완료 핸들러
+  const handleOnboardingComplete = (newSlides) => {
+    const addedCount = newSlides.length - slides.length;
+    setSlides(newSlides);
+    setShowOnboarding(false);
+    if (addedCount > 0) {
+      showStatus('AI가 슬라이드를 채우고 ' + addedCount + '개의 슬라이드를 추가했습니다! ✨');
+    } else {
+      showStatus('AI가 슬라이드를 자동으로 채웠습니다! ✨');
+    }
+  };
+
   const updateSlideData = (elementId, value) => {
     const newSlides = [...slides];
     if (!newSlides[currentSlideIndex].data) newSlides[currentSlideIndex].data = {};
@@ -298,6 +315,9 @@ function PresentationBuilder() {
         }
         if (showPdfUpload) {
           setShowPdfUpload(false);
+        }
+        if (showOnboarding) {
+          setShowOnboarding(false);
         }
         return;
       }
@@ -379,7 +399,7 @@ function PresentationBuilder() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [currentSlideIndex, slides, copiedSlide, showTemplateModal, showPdfUpload]);
+  }, [currentSlideIndex, slides, copiedSlide, showTemplateModal, showPdfUpload, showOnboarding]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -418,6 +438,7 @@ function PresentationBuilder() {
         <div className="flex items-center gap-3">
           <span className={`font-bold ${theme.textMain} tracking-tight text-base`}>TransformTrack 소개서 빌더</span>
           <div className={`hidden sm:flex px-2 py-0.5 rounded text-[10px] font-bold border ${theme.border} ${theme.textSub}`}>1920 x 1080</div>
+          <button onClick={() => setShowOnboarding(true)} className="px-3 py-1.5 text-xs font-bold bg-indigo-100 text-indigo-600 hover:bg-indigo-200 rounded-lg">🤖 AI 자동생성</button>
           <button onClick={() => setShowPdfUpload(true)} className="px-3 py-1.5 text-xs font-bold bg-emerald-100 text-emerald-700 hover:bg-emerald-200 rounded-lg">📄 PDF 업로드</button>
         </div>
 
@@ -567,6 +588,15 @@ function PresentationBuilder() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* AI 온보딩 모달 */}
+      {showOnboarding && (
+        <OnboardingModal
+          slides={slides}
+          onComplete={handleOnboardingComplete}
+          onSkip={() => setShowOnboarding(false)}
+        />
       )}
 
       {statusMessage && <div className="absolute top-16 left-1/2 -translate-x-1/2 bg-slate-900/90 text-white px-5 py-2 rounded-full shadow-2xl flex items-center gap-2.5 z-[300]"><span className="text-xs font-medium">{statusMessage}</span></div>}
