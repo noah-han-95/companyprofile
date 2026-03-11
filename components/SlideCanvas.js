@@ -23,7 +23,8 @@ function SlideCanvas({ template, data, onUpdate, onImageUpload, currentSlideInde
       { id: 'faq2', question: 'Q2. 질문을 입력하세요.', answer: '답변을 입력하세요.' },
       { id: 'faq3', question: 'Q3. 질문을 입력하세요.', answer: '답변을 입력하세요.' },
       { id: 'faq4', question: 'Q4. 질문을 입력하세요.', answer: '답변을 입력하세요.' },
-      { id: 'faq5', question: 'Q5. 질문을 입력하세요.', answer: '답변을 입력하세요.' }
+      { id: 'faq5', question: 'Q5. 질문을 입력하세요.', answer: '답변을 입력하세요.' },
+      { id: 'faq6', question: 'Q6. 질문을 입력하세요.', answer: '답변을 입력하세요.' }
     ];
   });
 
@@ -37,9 +38,7 @@ function SlideCanvas({ template, data, onUpdate, onImageUpload, currentSlideInde
       { id: 'faq3', question: 'Q3. 질문을 입력하세요.', answer: '답변을 입력하세요.' },
       { id: 'faq4', question: 'Q4. 질문을 입력하세요.', answer: '답변을 입력하세요.' },
       { id: 'faq5', question: 'Q5. 질문을 입력하세요.', answer: '답변을 입력하세요.' },
-      { id: 'faq6', question: 'Q6. 질문을 입력하세요.', answer: '답변을 입력하세요.' },
-      { id: 'faq7', question: 'Q7. 질문을 입력하세요.', answer: '답변을 입력하세요.' },
-      { id: 'faq8', question: 'Q8. 질문을 입력하세요.', answer: '답변을 입력하세요.' }
+      { id: 'faq6', question: 'Q6. 질문을 입력하세요.', answer: '답변을 입력하세요.' }
     ];
   });
 
@@ -175,7 +174,8 @@ function SlideCanvas({ template, data, onUpdate, onImageUpload, currentSlideInde
         { id: 'faq2', question: 'Q2. 질문을 입력하세요.', answer: '답변을 입력하세요.' },
         { id: 'faq3', question: 'Q3. 질문을 입력하세요.', answer: '답변을 입력하세요.' },
         { id: 'faq4', question: 'Q4. 질문을 입력하세요.', answer: '답변을 입력하세요.' },
-        { id: 'faq5', question: 'Q5. 질문을 입력하세요.', answer: '답변을 입력하세요.' }
+        { id: 'faq5', question: 'Q5. 질문을 입력하세요.', answer: '답변을 입력하세요.' },
+        { id: 'faq6', question: 'Q6. 질문을 입력하세요.', answer: '답변을 입력하세요.' }
       ];
       setFaq02Items(defaultItems);
     }
@@ -190,9 +190,7 @@ function SlideCanvas({ template, data, onUpdate, onImageUpload, currentSlideInde
         { id: 'faq3', question: 'Q3. 질문을 입력하세요.', answer: '답변을 입력하세요.' },
         { id: 'faq4', question: 'Q4. 질문을 입력하세요.', answer: '답변을 입력하세요.' },
         { id: 'faq5', question: 'Q5. 질문을 입력하세요.', answer: '답변을 입력하세요.' },
-        { id: 'faq6', question: 'Q6. 질문을 입력하세요.', answer: '답변을 입력하세요.' },
-        { id: 'faq7', question: 'Q7. 질문을 입력하세요.', answer: '답변을 입력하세요.' },
-        { id: 'faq8', question: 'Q8. 질문을 입력하세요.', answer: '답변을 입력하세요.' }
+        { id: 'faq6', question: 'Q6. 질문을 입력하세요.', answer: '답변을 입력하세요.' }
       ];
       setFaq01Items(defaultItems);
     }
@@ -2918,6 +2916,451 @@ function SlideCanvas({ template, data, onUpdate, onImageUpload, currentSlideInde
           style={{ position: 'absolute', left: '1680px', top: '990px', fontSize: '20px', fontWeight: '500', color: '#999999', fontFamily: 'Pretendard', letterSpacing: '-0.2px', lineHeight: 1.4, textAlign: 'right', width: '120px', cursor: 'default' }}>
           {getPageNumber(currentSlideIndex)}
         </div>
+      </div>
+    );
+  }
+
+  // ─── Mobile 템플릿 전용 렌더링 (Type 01~04) ───
+  if (template.id === 'mobile01' || template.id === 'mobile02' || template.id === 'mobile03' || template.id === 'mobile04') {
+    // 모바일 프레임 정보 (템플릿별)
+    const mobileFrames = {
+      mobile01: [
+        { key: 'mobile_img_0', frame: { x: 745, y: 195, w: 375, h: 730, r: 24, sw: 12 }, img: { x: 757, y: 207, w: 351, h: 706 } }
+      ],
+      mobile02: [
+        { key: 'mobile_img_0', frame: { x: 829, y: 256, w: 375, h: 705, r: 24, sw: 12 }, img: { x: 841, y: 268, w: 351, h: 681 } },
+        { key: 'mobile_img_1', frame: { x: 1328, y: 256, w: 375, h: 705, r: 24, sw: 12 }, img: { x: 1340, y: 268, w: 351, h: 681 } }
+      ],
+      mobile03: [
+        { key: 'mobile_img_0', frame: { x: 134, y: 467, w: 480, h: 792, r: 24, sw: 12 }, img: { x: 146, y: 479, w: 456, h: 768 } },
+        { key: 'mobile_img_1', frame: { x: 720, y: 467, w: 480, h: 792, r: 24, sw: 12 }, img: { x: 732, y: 479, w: 456, h: 768 } },
+        { key: 'mobile_img_2', frame: { x: 1306, y: 467, w: 480, h: 792, r: 24, sw: 12 }, img: { x: 1318, y: 479, w: 456, h: 768 } }
+      ],
+      mobile04: [
+        { key: 'mobile_img_0', frame: { x: 120, y: 586, w: 346, h: 600, r: 24, sw: 12 }, img: { x: 132, y: 598, w: 322, h: 576 } },
+        { key: 'mobile_img_1', frame: { x: 566, y: 586, w: 346, h: 600, r: 24, sw: 12 }, img: { x: 578, y: 598, w: 322, h: 576 } },
+        { key: 'mobile_img_2', frame: { x: 1012, y: 586, w: 346, h: 600, r: 24, sw: 12 }, img: { x: 1024, y: 598, w: 322, h: 576 } },
+        { key: 'mobile_img_3', frame: { x: 1458, y: 586, w: 346, h: 600, r: 24, sw: 12 }, img: { x: 1470, y: 598, w: 322, h: 576 } }
+      ]
+    };
+
+    const frames = mobileFrames[template.id];
+
+    // 이미지 인덱스 집합 (프레임 rect와 프레임 내 이미지 element를 generic 렌더링에서 건너뛰기 위함)
+    const frameRectIndices = new Set();
+    const frameImgIndices = new Set();
+    template.elements.forEach((el, idx) => {
+      if (el.type === 'rect' && el.stroke && el.cornerRadius) {
+        frames.forEach(f => {
+          if (el.x === f.frame.x && el.y === f.frame.y && el.width === f.frame.w && el.height === f.frame.h) {
+            frameRectIndices.add(idx);
+          }
+        });
+      }
+      if (el.type === 'image' && el.placeholder && el.editable) {
+        frames.forEach(f => {
+          if (el.x === f.img.x && el.y === f.img.y && el.width === f.img.w && el.height === f.img.h) {
+            frameImgIndices.add(idx);
+          }
+        });
+      }
+    });
+
+    const makeMobileHandlers = (imageKey) => {
+      const imageSrc = data[imageKey];
+      const imgTransform = data[`${imageKey}_transform`] || { x: 0, y: 0, scale: 1 };
+
+      return {
+        imageSrc, imgTransform,
+        onMouseDown: (e) => {
+          if (!imageSrc) return;
+          e.preventDefault();
+          e.stopPropagation();
+          setIsDraggingImg(true);
+          setDraggingImageKey(imageKey);
+          setDragStart({ x: e.clientX, y: e.clientY });
+          setDragOffset({ x: imgTransform.x, y: imgTransform.y });
+        },
+        onMouseMove: (e) => {
+          if (!isDraggingImg || draggingImageKey !== imageKey) return;
+          const slideEl = e.currentTarget.closest('.w-full.h-full');
+          const rect = slideEl?.getBoundingClientRect();
+          const currentScale = rect ? rect.width / 1920 : 1;
+          const dx = (e.clientX - dragStart.x) / currentScale;
+          const dy = (e.clientY - dragStart.y) / currentScale;
+          onUpdate(`${imageKey}_transform`, { ...imgTransform, x: dragOffset.x + dx, y: dragOffset.y + dy });
+        },
+        onMouseUp: () => {
+          if (draggingImageKey === imageKey) { setIsDraggingImg(false); setDraggingImageKey(null); }
+        },
+        onWheel: (e) => {
+          if (!imageSrc) return;
+          e.preventDefault(); e.stopPropagation();
+          const delta = e.deltaY > 0 ? -0.05 : 0.05;
+          const newScale = Math.max(0.5, Math.min(3, imgTransform.scale + delta));
+          onUpdate(`${imageKey}_transform`, { ...imgTransform, scale: newScale });
+        }
+      };
+    };
+
+    return (
+      <div className="w-full h-full relative" style={{ backgroundColor: template.elements[0]?.fill || '#FFFFFF' }}>
+        {/* 배경 rect, 텍스트, 비프레임 이미지 등 일반 요소 렌더링 */}
+        {template.elements.map((element, idx) => {
+          // 프레임 rect와 프레임 이미지는 건너뛰기
+          if (frameRectIndices.has(idx) || frameImgIndices.has(idx)) return null;
+
+          const elementId = `${element.type}_${idx}`;
+
+          if (element.type === 'rect') {
+            return (
+              <div key={idx} style={{ position: 'absolute', left: `${element.x}px`, top: `${element.y}px`, width: `${element.width}px`, height: `${element.height}px`, backgroundColor: element.fill, borderRadius: element.cornerRadius ? `${element.cornerRadius}px` : '0', border: element.stroke ? `${element.strokeWidth}px solid ${element.stroke}` : 'none' }} />
+            );
+          }
+
+          if (element.type === 'text' && element.editable) {
+            const isPageNumber = element.x === 1680 && element.y === 990;
+            const autoPageNumber = isPageNumber ? getPageNumber(currentSlideIndex) : null;
+            let displayValue = data[elementId] || element.content;
+            if (autoPageNumber !== null) displayValue = autoPageNumber;
+
+            return (
+              <div key={idx} ref={el => textRefs.current[elementId] = el}
+                className="editable-field absolute" contentEditable={!isPageNumber} suppressContentEditableWarning
+                onBlur={(e) => handleTextEdit(elementId, e)}
+                style={{ left: `${element.x}px`, top: `${element.y}px`, fontSize: `${element.fontSize}px`, fontWeight: element.fontWeight, color: element.fill, maxWidth: element.width ? `${element.width}px` : 'none', width: element.width ? `${element.width}px` : 'auto', lineHeight: element.lineHeight || 1.5, fontFamily: element.fontFamily, letterSpacing: element.letterSpacing ? `${element.letterSpacing}px` : 'normal', textAlign: element.textAlign || 'left', whiteSpace: 'pre-wrap', wordBreak: 'break-word', cursor: isPageNumber ? 'default' : 'text' }}>
+                {displayValue}
+              </div>
+            );
+          }
+
+          if (element.type === 'text' && !element.editable) {
+            return (
+              <div key={idx} className="absolute whitespace-pre-wrap" style={{ left: `${element.x}px`, top: `${element.y}px`, fontSize: `${element.fontSize}px`, fontWeight: element.fontWeight, color: element.fill, maxWidth: element.width ? `${element.width}px` : 'none', width: element.width ? `${element.width}px` : 'auto', lineHeight: element.lineHeight || 1.5, fontFamily: element.fontFamily, letterSpacing: element.letterSpacing ? `${element.letterSpacing}px` : 'normal', textAlign: element.textAlign || 'left' }}>
+                {element.content}
+              </div>
+            );
+          }
+
+          if (element.type === 'image' && !element.editable) {
+            return (
+              <div key={idx} className="absolute" style={{ left: `${element.x}px`, top: `${element.y}px`, width: `${element.width}px`, height: `${element.height}px` }}>
+                <img src={element.url} alt="" className="w-full h-full object-contain" />
+              </div>
+            );
+          }
+
+          if (element.type === 'line') {
+            return (
+              <svg key={idx} style={{ position: 'absolute', left: `${Math.min(element.x1, element.x2)}px`, top: `${Math.min(element.y1, element.y2)}px`, width: `${Math.abs(element.x2 - element.x1)}px`, height: `${Math.abs(element.y2 - element.y1)}px`, overflow: 'visible' }}>
+                <line x1={element.x1 < element.x2 ? 0 : Math.abs(element.x2 - element.x1)} y1={element.y1 < element.y2 ? 0 : Math.abs(element.y2 - element.y1)} x2={element.x1 < element.x2 ? Math.abs(element.x2 - element.x1) : 0} y2={element.y1 < element.y2 ? Math.abs(element.y2 - element.y1) : 0} stroke={element.stroke} strokeWidth={element.strokeWidth} />
+              </svg>
+            );
+          }
+
+          return null;
+        })}
+
+        {/* 모바일 프레임 + 이미지 (드래그/스케일/클리핑) */}
+        {frames.map((f) => {
+          const h = makeMobileHandlers(f.key);
+          return (
+            <div key={f.key} style={{
+              position: 'absolute',
+              left: `${f.frame.x}px`, top: `${f.frame.y}px`,
+              width: `${f.frame.w}px`, height: `${f.frame.h}px`,
+              borderRadius: `${f.frame.r}px`,
+              border: `${f.frame.sw}px solid #333333`,
+              overflow: 'hidden',
+              backgroundColor: '#FFFFFF'
+            }}>
+              <div
+                style={{
+                  position: 'absolute',
+                  left: `${f.img.x - f.frame.x - f.frame.sw}px`,
+                  top: `${f.img.y - f.frame.y - f.frame.sw}px`,
+                  width: `${f.img.w}px`, height: `${f.img.h}px`,
+                  overflow: 'hidden',
+                  cursor: h.imageSrc ? (isDraggingImg && draggingImageKey === f.key ? 'grabbing' : 'grab') : 'pointer'
+                }}
+                onClick={(e) => { e.stopPropagation(); if (!h.imageSrc) handleImageClick(f.key); }}
+                onMouseDown={h.imageSrc ? h.onMouseDown : undefined}
+                onMouseMove={h.imageSrc ? h.onMouseMove : undefined}
+                onMouseUp={h.imageSrc ? h.onMouseUp : undefined}
+                onMouseLeave={h.imageSrc ? h.onMouseUp : undefined}
+                onWheel={h.imageSrc ? h.onWheel : undefined}
+              >
+                {h.imageSrc ? (
+                  <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+                    <img src={h.imageSrc} alt="" style={{
+                      position: 'absolute', left: '50%', top: '50%',
+                      transform: `translate(calc(-50% + ${h.imgTransform.x}px), calc(-50% + ${h.imgTransform.y}px)) scale(${h.imgTransform.scale})`,
+                      maxWidth: '100%', maxHeight: '100%', objectFit: 'contain',
+                      userSelect: 'none', pointerEvents: 'none'
+                    }} />
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleImageClick(f.key); }}
+                      className="cv01-img-change-btn"
+                      style={{
+                        position: 'absolute', bottom: '16px', left: '50%', transform: 'translateX(-50%)',
+                        padding: '8px 20px', borderRadius: '8px',
+                        backgroundColor: 'rgba(0,0,0,0.6)', color: '#FFFFFF', border: 'none',
+                        cursor: 'pointer', fontSize: '14px', fontWeight: '600', fontFamily: 'Pretendard',
+                        opacity: 0, transition: 'opacity 0.2s ease', zIndex: 10, pointerEvents: 'auto'
+                      }}>
+                      이미지 변경
+                    </button>
+                    <div className="cv01-img-hint" style={{
+                      position: 'absolute', top: '12px', left: '50%', transform: 'translateX(-50%)',
+                      padding: '4px 12px', borderRadius: '6px',
+                      backgroundColor: 'rgba(0,0,0,0.5)', color: '#FFFFFF',
+                      fontSize: '12px', fontWeight: '500', fontFamily: 'Pretendard',
+                      opacity: 0, transition: 'opacity 0.2s ease', pointerEvents: 'none',
+                      whiteSpace: 'nowrap', zIndex: 10
+                    }}>
+                      드래그: 위치 이동 · 스크롤: 크기 조절
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{
+                    width: '100%', height: '100%',
+                    display: 'flex', flexDirection: 'column',
+                    alignItems: 'center', justifyContent: 'center', gap: '12px',
+                    backgroundColor: '#F0F0F0'
+                  }}>
+                    <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#BBBBBB" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                      <circle cx="8.5" cy="8.5" r="1.5"/>
+                      <polyline points="21 15 16 10 5 21"/>
+                    </svg>
+                    <span style={{ fontSize: '16px', fontWeight: '600', color: '#BBBBBB', fontFamily: 'Pretendard' }}>
+                      클릭하여 이미지 추가
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
+
+  // ─── PC 템플릿 전용 렌더링 (Type 01~04) ───
+  if (template.id === 'pc01' || template.id === 'pc02' || template.id === 'pc03' || template.id === 'pc04') {
+    const pcFrames = {
+      pc01: [
+        { key: 'pc_img_0', frame: { x: 335, y: 399, w: 1250, h: 918, r: 24, sw: 11 }, img: { x: 346, y: 410, w: 1228, h: 896 } }
+      ],
+      pc02: [
+        { key: 'pc_img_0', frame: { x: 137, y: 400, w: 805, h: 539, r: 24, sw: 11 }, img: { x: 148, y: 411, w: 783, h: 517 } },
+        { key: 'pc_img_1', frame: { x: 1005, y: 400, w: 805, h: 539, r: 24, sw: 11 }, img: { x: 1016, y: 411, w: 783, h: 517 } }
+      ],
+      pc03: [
+        { key: 'pc_img_0', frame: { x: 237, y: 400, w: 1084, h: 539, r: 24, sw: 11 }, img: { x: 248, y: 411, w: 1062, h: 517 } },
+        { key: 'pc_img_1', frame: { x: 1384, y: 400, w: 299, h: 539, r: 24, sw: 11 }, img: { x: 1395, y: 411, w: 277, h: 517 } }
+      ],
+      pc04: [
+        { key: 'pc_img_0', frame: { x: 120, y: 400, w: 720, h: 539, r: 24, sw: 11 }, img: { x: 131, y: 411, w: 698, h: 517 } },
+        { key: 'pc_img_1', frame: { x: 903, y: 400, w: 900, h: 539, r: 24, sw: 11 }, img: { x: 914, y: 411, w: 878, h: 517 } }
+      ]
+    };
+
+    const frames = pcFrames[template.id];
+
+    const frameRectIndices = new Set();
+    const frameImgIndices = new Set();
+    template.elements.forEach((el, idx) => {
+      if (el.type === 'rect' && el.stroke && el.cornerRadius) {
+        frames.forEach(f => {
+          if (el.x === f.frame.x && el.y === f.frame.y && el.width === f.frame.w && el.height === f.frame.h) {
+            frameRectIndices.add(idx);
+          }
+        });
+      }
+      if (el.type === 'image' && el.placeholder && el.editable) {
+        frames.forEach(f => {
+          if (el.x === f.img.x && el.y === f.img.y && el.width === f.img.w && el.height === f.img.h) {
+            frameImgIndices.add(idx);
+          }
+        });
+      }
+    });
+
+    const makePcHandlers = (imageKey) => {
+      const imageSrc = data[imageKey];
+      const imgTransform = data[`${imageKey}_transform`] || { x: 0, y: 0, scale: 1 };
+
+      return {
+        imageSrc, imgTransform,
+        onMouseDown: (e) => {
+          if (!imageSrc) return;
+          e.preventDefault();
+          e.stopPropagation();
+          setIsDraggingImg(true);
+          setDraggingImageKey(imageKey);
+          setDragStart({ x: e.clientX, y: e.clientY });
+          setDragOffset({ x: imgTransform.x, y: imgTransform.y });
+        },
+        onMouseMove: (e) => {
+          if (!isDraggingImg || draggingImageKey !== imageKey) return;
+          const slideEl = e.currentTarget.closest('.w-full.h-full');
+          const rect = slideEl?.getBoundingClientRect();
+          const currentScale = rect ? rect.width / 1920 : 1;
+          const dx = (e.clientX - dragStart.x) / currentScale;
+          const dy = (e.clientY - dragStart.y) / currentScale;
+          onUpdate(`${imageKey}_transform`, { ...imgTransform, x: dragOffset.x + dx, y: dragOffset.y + dy });
+        },
+        onMouseUp: () => {
+          if (draggingImageKey === imageKey) { setIsDraggingImg(false); setDraggingImageKey(null); }
+        },
+        onWheel: (e) => {
+          if (!imageSrc) return;
+          e.preventDefault(); e.stopPropagation();
+          const delta = e.deltaY > 0 ? -0.05 : 0.05;
+          const newScale = Math.max(0.5, Math.min(3, imgTransform.scale + delta));
+          onUpdate(`${imageKey}_transform`, { ...imgTransform, scale: newScale });
+        }
+      };
+    };
+
+    return (
+      <div className="w-full h-full relative" style={{ backgroundColor: template.elements[0]?.fill || '#FFFFFF' }}>
+        {template.elements.map((element, idx) => {
+          if (frameRectIndices.has(idx) || frameImgIndices.has(idx)) return null;
+
+          const elementId = `${element.type}_${idx}`;
+
+          if (element.type === 'rect') {
+            return (
+              <div key={idx} style={{ position: 'absolute', left: `${element.x}px`, top: `${element.y}px`, width: `${element.width}px`, height: `${element.height}px`, backgroundColor: element.fill, borderRadius: element.cornerRadius ? `${element.cornerRadius}px` : '0', border: element.stroke ? `${element.strokeWidth}px solid ${element.stroke}` : 'none' }} />
+            );
+          }
+
+          if (element.type === 'text' && element.editable) {
+            const isPageNumber = element.x === 1680 && element.y === 990;
+            const autoPageNumber = isPageNumber ? getPageNumber(currentSlideIndex) : null;
+            let displayValue = data[elementId] || element.content;
+            if (autoPageNumber !== null) displayValue = autoPageNumber;
+
+            return (
+              <div key={idx} ref={el => textRefs.current[elementId] = el}
+                className="editable-field absolute" contentEditable={!isPageNumber} suppressContentEditableWarning
+                onBlur={(e) => handleTextEdit(elementId, e)}
+                style={{ left: `${element.x}px`, top: `${element.y}px`, fontSize: `${element.fontSize}px`, fontWeight: element.fontWeight, color: element.fill, maxWidth: element.width ? `${element.width}px` : 'none', width: element.width ? `${element.width}px` : 'auto', lineHeight: element.lineHeight || 1.5, fontFamily: element.fontFamily, letterSpacing: element.letterSpacing ? `${element.letterSpacing}px` : 'normal', textAlign: element.textAlign || 'left', whiteSpace: 'pre-wrap', wordBreak: 'break-word', cursor: isPageNumber ? 'default' : 'text' }}>
+                {displayValue}
+              </div>
+            );
+          }
+
+          if (element.type === 'text' && !element.editable) {
+            return (
+              <div key={idx} className="absolute whitespace-pre-wrap" style={{ left: `${element.x}px`, top: `${element.y}px`, fontSize: `${element.fontSize}px`, fontWeight: element.fontWeight, color: element.fill, maxWidth: element.width ? `${element.width}px` : 'none', width: element.width ? `${element.width}px` : 'auto', lineHeight: element.lineHeight || 1.5, fontFamily: element.fontFamily, letterSpacing: element.letterSpacing ? `${element.letterSpacing}px` : 'normal', textAlign: element.textAlign || 'left' }}>
+                {element.content}
+              </div>
+            );
+          }
+
+          if (element.type === 'image' && !element.editable) {
+            return (
+              <div key={idx} className="absolute" style={{ left: `${element.x}px`, top: `${element.y}px`, width: `${element.width}px`, height: `${element.height}px` }}>
+                <img src={element.url} alt="" className="w-full h-full object-contain" />
+              </div>
+            );
+          }
+
+          if (element.type === 'line') {
+            return (
+              <svg key={idx} style={{ position: 'absolute', left: `${Math.min(element.x1, element.x2)}px`, top: `${Math.min(element.y1, element.y2)}px`, width: `${Math.abs(element.x2 - element.x1)}px`, height: `${Math.abs(element.y2 - element.y1)}px`, overflow: 'visible' }}>
+                <line x1={element.x1 < element.x2 ? 0 : Math.abs(element.x2 - element.x1)} y1={element.y1 < element.y2 ? 0 : Math.abs(element.y2 - element.y1)} x2={element.x1 < element.x2 ? Math.abs(element.x2 - element.x1) : 0} y2={element.y1 < element.y2 ? Math.abs(element.y2 - element.y1) : 0} stroke={element.stroke} strokeWidth={element.strokeWidth} />
+              </svg>
+            );
+          }
+
+          return null;
+        })}
+
+        {/* PC 프레임 + 이미지 (드래그/스케일/클리핑) */}
+        {frames.map((f) => {
+          const h = makePcHandlers(f.key);
+          return (
+            <div key={f.key} style={{
+              position: 'absolute',
+              left: `${f.frame.x}px`, top: `${f.frame.y}px`,
+              width: `${f.frame.w}px`, height: `${f.frame.h}px`,
+              borderRadius: `${f.frame.r}px`,
+              border: `${f.frame.sw}px solid #333333`,
+              overflow: 'hidden',
+              backgroundColor: '#FFFFFF'
+            }}>
+              <div
+                style={{
+                  position: 'absolute',
+                  left: `${f.img.x - f.frame.x - f.frame.sw}px`,
+                  top: `${f.img.y - f.frame.y - f.frame.sw}px`,
+                  width: `${f.img.w}px`, height: `${f.img.h}px`,
+                  overflow: 'hidden',
+                  cursor: h.imageSrc ? (isDraggingImg && draggingImageKey === f.key ? 'grabbing' : 'grab') : 'pointer'
+                }}
+                onClick={(e) => { e.stopPropagation(); if (!h.imageSrc) handleImageClick(f.key); }}
+                onMouseDown={h.imageSrc ? h.onMouseDown : undefined}
+                onMouseMove={h.imageSrc ? h.onMouseMove : undefined}
+                onMouseUp={h.imageSrc ? h.onMouseUp : undefined}
+                onMouseLeave={h.imageSrc ? h.onMouseUp : undefined}
+                onWheel={h.imageSrc ? h.onWheel : undefined}
+              >
+                {h.imageSrc ? (
+                  <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+                    <img src={h.imageSrc} alt="" style={{
+                      position: 'absolute', left: '50%', top: '50%',
+                      transform: `translate(calc(-50% + ${h.imgTransform.x}px), calc(-50% + ${h.imgTransform.y}px)) scale(${h.imgTransform.scale})`,
+                      maxWidth: '100%', maxHeight: '100%', objectFit: 'contain',
+                      userSelect: 'none', pointerEvents: 'none'
+                    }} />
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleImageClick(f.key); }}
+                      className="cv01-img-change-btn"
+                      style={{
+                        position: 'absolute', bottom: '16px', left: '50%', transform: 'translateX(-50%)',
+                        padding: '8px 20px', borderRadius: '8px',
+                        backgroundColor: 'rgba(0,0,0,0.6)', color: '#FFFFFF', border: 'none',
+                        cursor: 'pointer', fontSize: '14px', fontWeight: '600', fontFamily: 'Pretendard',
+                        opacity: 0, transition: 'opacity 0.2s ease', zIndex: 10, pointerEvents: 'auto'
+                      }}>
+                      이미지 변경
+                    </button>
+                    <div className="cv01-img-hint" style={{
+                      position: 'absolute', top: '12px', left: '50%', transform: 'translateX(-50%)',
+                      padding: '4px 12px', borderRadius: '6px',
+                      backgroundColor: 'rgba(0,0,0,0.5)', color: '#FFFFFF',
+                      fontSize: '12px', fontWeight: '500', fontFamily: 'Pretendard',
+                      opacity: 0, transition: 'opacity 0.2s ease', pointerEvents: 'none',
+                      whiteSpace: 'nowrap', zIndex: 10
+                    }}>
+                      드래그: 위치 이동 · 스크롤: 크기 조절
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{
+                    width: '100%', height: '100%',
+                    display: 'flex', flexDirection: 'column',
+                    alignItems: 'center', justifyContent: 'center', gap: '12px',
+                    backgroundColor: '#F0F0F0'
+                  }}>
+                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#BBBBBB" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                      <circle cx="8.5" cy="8.5" r="1.5"/>
+                      <polyline points="21 15 16 10 5 21"/>
+                    </svg>
+                    <span style={{ fontSize: '18px', fontWeight: '600', color: '#BBBBBB', fontFamily: 'Pretendard' }}>
+                      클릭하여 이미지 추가
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })}
       </div>
     );
   }
