@@ -19,14 +19,39 @@
 <body class="bg-slate-50">
   <div id="root"></div>
 
-  <!-- Data (plain JS, no Babel needed) -->
+  <!-- 1. Data (plain JS) -->
   <script src="data/templates.js"></script>
+  <script src="data/frames.js"></script>
 
-  <!-- Components (JSX, processed by Babel) -->
+  <!-- 2. Shared utilities (plain JS, no JSX) -->
+  <script src="components/shared/imageHandlers.js"></script>
+  <script src="components/shared/renderHelpers.js"></script>
+  <script src="components/shared/ImageArea.js"></script>
+
+  <!-- 3. Renderers (JSX) -->
+  <script type="text/babel" src="components/renderers/IndexRenderer.js"></script>
+  <script type="text/babel" src="components/renderers/CoverRenderer.js"></script>
+  <script type="text/babel" src="components/renderers/TableRenderer.js"></script>
+  <script type="text/babel" src="components/renderers/CoreValueRenderer.js"></script>
+  <script type="text/babel" src="components/renderers/FaqRenderer.js"></script>
+  <script type="text/babel" src="components/renderers/SectionRenderer.js"></script>
+  <script type="text/babel" src="components/renderers/MobileRenderer.js"></script>
+  <script type="text/babel" src="components/renderers/PcRenderer.js"></script>
+  <script type="text/babel" src="components/renderers/GenericRenderer.js"></script>
+
+  <!-- 4. Thumbnails (JSX) -->
+  <script type="text/babel" src="components/thumbnails/TableThumb.js"></script>
+  <script type="text/babel" src="components/thumbnails/CoverThumb.js"></script>
+  <script type="text/babel" src="components/thumbnails/FaqThumb.js"></script>
+  <script type="text/babel" src="components/thumbnails/SectionThumb.js"></script>
+  <script type="text/babel" src="components/thumbnails/DeviceThumb.js"></script>
+  <script type="text/babel" src="components/thumbnails/GenericThumb.js"></script>
+
+  <!-- 5. Main components (JSX, depend on renderers/thumbnails) -->
   <script type="text/babel" src="components/SlideCanvas.js"></script>
   <script type="text/babel" src="components/TemplateThumbnail.js"></script>
 
-  <!-- Main App -->
+  <!-- 6. App entry -->
   <script type="text/babel" src="app.js"></script>
 </body>
 </html>
