@@ -19,6 +19,14 @@
 <body class="bg-slate-50">
   <div id="root"></div>
 
-    <script type="text/babel" src="app.js"></script>
+  <!-- Data (plain JS, no Babel needed) -->
+  <script src="data/templates.js"></script>
+
+  <!-- Components (JSX, processed by Babel) -->
+  <script type="text/babel" src="components/SlideCanvas.js"></script>
+  <script type="text/babel" src="components/TemplateThumbnail.js"></script>
+
+  <!-- Main App -->
+  <script type="text/babel" src="app.js"></script>
 </body>
 </html>

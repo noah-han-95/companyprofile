@@ -1,2650 +1,558 @@
-const { useState, useEffect, useRef } = React;
+function PresentationBuilder() {
+  const [currentTheme, setCurrentTheme] = useState('light');
+  const [scale, setScale] = useState(0.4);
+  const [statusMessage, setStatusMessage] = useState(null);
+  const [draggedIndex, setDraggedIndex] = useState(null);
+  const [dropTargetIndex, setDropTargetIndex] = useState(null);
+  const [showPdfUpload, setShowPdfUpload] = useState(false);
 
-    // PDF.js 초기화
-    if (window.pdfjsLib) {
-      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  // 기본 슬라이드 (data는 항상 초기화, templateId는 localStorage에서 복원)
+  const defaultSlides = [
+    { id: 's1', templateId: 'maincover01' },
+    { id: 's2', templateId: 'index01' },
+    { id: 's3', templateId: 'corevalue01' },
+    { id: 's4', templateId: 'table01' },
+    { id: 's5', templateId: 'section01' },
+    { id: 's6', templateId: 'mobile01' },
+    { id: 's7', templateId: 'pc01' },
+    { id: 's8', templateId: 'faq01' },
+    { id: 's9', templateId: 'contact01' },
+    { id: 's10', templateId: 'finalcover01' }
+  ];
+  const [slides, setSlides] = useState(() => {
+    const savedTypes = localStorage.getItem('transformtrack-templateIds-v2');
+    if (savedTypes) {
+      try {
+        const typeMap = JSON.parse(savedTypes);
+        // 슬라이드 수가 일치할 때만 복원
+        if (Object.keys(typeMap).length === defaultSlides.length) {
+          return defaultSlides.map(s => ({ ...s, templateId: typeMap[s.id] || s.templateId, data: {} }));
+        }
+      } catch(e) {}
+    }
+    return defaultSlides.map(s => ({ ...s, data: {} }));
+  });
+  const [currentSlideIndex, setCurrentSlideIndex] = useState(() => {
+    const saved = localStorage.getItem('transformtrack-currentSlideIndex');
+    return saved ? Math.min(parseInt(saved, 10), 9) : 0;
+  });
+  const [showTemplateModal, setShowTemplateModal] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState(null);
+  const [copiedSlide, setCopiedSlide] = useState(null);
+
+  const containerRef = useRef(null);
+  const slideRef = useRef(null);
+  const thumbnailRefs = useRef([]);
+
+  const themes = {
+    light: { name: '라이트 모드', navBg: 'bg-white', workspaceBg: 'bg-slate-50', slideBg: 'bg-white', textMain: 'text-slate-900', textSub: 'text-slate-500', accent: 'bg-white', uiAccent: 'bg-slate-900', border: 'border-slate-200', tabBg: 'bg-slate-100', activeTabBg: 'bg-white text-slate-900 shadow-sm' },
+    dark: { name: '다크 모드', navBg: 'bg-slate-900', workspaceBg: 'bg-black', slideBg: 'bg-slate-900', textMain: 'text-white', textSub: 'text-slate-400', accent: 'bg-black', uiAccent: 'bg-indigo-500', border: 'border-slate-800', tabBg: 'bg-slate-800', activeTabBg: 'bg-slate-700 text-white' }
+  };
+
+  const theme = themes[currentTheme];
+
+  const showStatus = (msg) => {
+    setStatusMessage(msg);
+    setTimeout(() => setStatusMessage(null), 3000);
+  };
+
+  const handleZoom = (newScale) => {
+    const constrainedScale = Math.max(0.1, Math.min(newScale, 1.5));
+    setScale(constrainedScale);
+  };
+
+  const addSlide = (templateId) => {
+    const newSlide = { id: `s${Date.now()}`, templateId, data: {} };
+    const newSlides = [...slides];
+    newSlides.splice(currentSlideIndex + 1, 0, newSlide);
+    setSlides(newSlides);
+    setCurrentSlideIndex(currentSlideIndex + 1);
+    setShowTemplateModal(false);
+    setSelectedCategory(null);
+    showStatus('슬라이드가 추가되었습니다! ✨');
+  };
+
+  const replaceCurrentSlide = (templateId) => {
+    const newSlides = [...slides];
+    newSlides[currentSlideIndex] = { ...newSlides[currentSlideIndex], templateId, data: {} };
+    setSlides(newSlides);
+    setSelectedCategory(null);
+  };
+
+  const deleteSlide = () => {
+    if (slides.length <= 1) {
+      showStatus('최소 1개의 슬라이드가 필요합니다.');
+      return;
+    }
+    const newSlides = slides.filter((_, idx) => idx !== currentSlideIndex);
+    setSlides(newSlides);
+    setCurrentSlideIndex(Math.max(0, currentSlideIndex - 1));
+    showStatus('슬라이드가 삭제되었습니다.');
+  };
+
+  const resetSlide = () => {
+    const newSlides = [...slides];
+    newSlides[currentSlideIndex] = {
+      ...newSlides[currentSlideIndex],
+      data: {}
+    };
+    setSlides(newSlides);
+    showStatus('슬라이드가 초기화되었습니다! 🔄');
+  };
+
+  // 페이지 번호 자동 계산 (Main Cover, Final Cover, Index 제외)
+  const getPageNumber = (slideIndex) => {
+    if (!slides[slideIndex]) return '';
+
+    // Main Cover, Final Cover, Index 개수만 제외하고 순차 카운트
+    let pageNumber = 1;
+    for (let i = 0; i < slideIndex; i++) {
+      const templateId = slides[i].templateId;
+      if (!templateId.startsWith('maincover') && !templateId.startsWith('finalcover') && !templateId.startsWith('index')) {
+        pageNumber++;
+      }
     }
 
-    // ==================== 통합 소개서 템플릿 (완전 동일하게) ====================
-    const TEMPLATES = {
-      // Mobile Templates (4개)
-      mobile01: {
-        id: 'mobile01',
-        name: 'Type 01',
-        category: 'Mobile',
-        penId: 'x7DJW',
-        elements: [
-          { type: 'rect', x: 0, y: 0, width: 1920, height: 1080, fill: '#FFFFFF' },
-          { type: 'text', x: 120, y: 100, content: '주요장점', fontSize: 32, fontWeight: '700', fill: '#BBBBBB', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.3, editable: true },
-          { type: 'text', x: 120, y: 152, content: '모바일로 더 편리하게', fontSize: 48, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.48, lineHeight: 1.3, editable: true },
-          { type: 'text', x: 120, y: 241, content: '모바일 환경에 최적화된 인터페이스로 더욱 편리하게 이용할 수 있습니다.', fontSize: 32, fontWeight: '500', fill: '#666666', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.5, width: 418, editable: true },
-          { type: 'rect', x: 745, y: 195, width: 375, height: 730, fill: '#FFFFFF', cornerRadius: 24, stroke: '#333333', strokeWidth: 12 },
-          { type: 'image', x: 757, y: 207, width: 351, height: 706, placeholder: true, editable: true },
-          { type: 'text', x: 1250, y: 280, content: '빠른 예약 처리', fontSize: 32, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.5, editable: true },
-          { type: 'text', x: 1250, y: 332, content: '실시간으로 예약을 확인하고\n언제 어디서나 빠르게 관리할 수 있습니다', fontSize: 20, fontWeight: '500', fill: '#666666', fontFamily: 'Pretendard', letterSpacing: -0.2, lineHeight: 1.4, editable: true },
-          { type: 'text', x: 1250, y: 500, content: '간편한 관리 시스템', fontSize: 32, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.5, editable: true },
-          { type: 'text', x: 1250, y: 552, content: '모든 예약 정보를 한눈에 확인하고\n효율적으로 운영할 수 있습니다', fontSize: 20, fontWeight: '500', fill: '#666666', fontFamily: 'Pretendard', letterSpacing: -0.2, lineHeight: 1.4, editable: true },
-          { type: 'text', x: 1250, y: 720, content: '스마트 알림', fontSize: 32, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.5, editable: true },
-          { type: 'text', x: 1250, y: 772, content: '예약 변경 및 새로운 예약 발생 시\n즉시 알림을 받아볼 수 있습니다', fontSize: 20, fontWeight: '500', fill: '#666666', fontFamily: 'Pretendard', letterSpacing: -0.2, lineHeight: 1.4, editable: true },
-          { type: 'image', x: 120, y: 991, width: 118, height: 20, url: 'assets/icons/yeogi-logo.svg' },
-          { type: 'text', x: 260, y: 990, content: '2026 © GC Company Corp. All rights reserved.', fontSize: 20, fontWeight: '500', fill: '#BBBBBB', fontFamily: 'Pretendard', letterSpacing: -0.2, lineHeight: 1.4 },
-          { type: 'text', x: 1680, y: 990, content: 'P1', fontSize: 20, fontWeight: '500', fill: '#999999', fontFamily: 'Pretendard', letterSpacing: -0.2, lineHeight: 1.4, editable: true, textAlign: 'right', width: 120 }
-        ]
-      },
-      mobile02: {
-        id: 'mobile02',
-        name: 'Type 02',
-        category: 'Mobile',
-        penId: '5rx6P',
-        elements: [
-          { type: 'rect', x: 0, y: 0, width: 1920, height: 1080, fill: '#FFFFFF' },
-          { type: 'rect', x: 611, y: 0, width: 1309, height: 1080, fill: '#F7F7F7' },
-          { type: 'text', x: 120, y: 100, content: '주요장점', fontSize: 32, fontWeight: '700', fill: '#BBBBBB', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.3, editable: true },
-          { type: 'text', x: 120, y: 152, content: '서비스 비교 분석', fontSize: 48, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.48, lineHeight: 1.3, editable: true },
-          { type: 'text', x: 120, y: 241, content: '두 가지 버전을 비교하여 사용자 경험의 차이를 명확하게 확인할 수 있습니다.', fontSize: 32, fontWeight: '500', fill: '#666666', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.5, width: 418, editable: true },
-          { type: 'text', x: 829, y: 118, content: '01. 첫 번째 화면', fontSize: 32, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.5, width: 375, editable: true },
-          { type: 'text', x: 829, y: 179, content: '주요 기능을 한눈에 확인하고 빠르게 접근', fontSize: 20, fontWeight: '500', fill: '#666666', fontFamily: 'Pretendard', letterSpacing: -0.2, lineHeight: 1.5, width: 375, editable: true },
-          { type: 'rect', x: 829, y: 256, width: 375, height: 705, fill: '#FFFFFF', cornerRadius: 24, stroke: '#333333', strokeWidth: 12 },
-          { type: 'image', x: 841, y: 268, width: 351, height: 681, placeholder: true, editable: true },
-          { type: 'text', x: 1328, y: 118, content: '02. 두 번째 화면', fontSize: 32, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.5, width: 375, editable: true },
-          { type: 'text', x: 1328, y: 179, content: '주요 기능을 한눈에 확인하고 빠르게 접근', fontSize: 20, fontWeight: '500', fill: '#666666', fontFamily: 'Pretendard', letterSpacing: -0.2, lineHeight: 1.5, width: 375, editable: true },
-          { type: 'rect', x: 1328, y: 256, width: 375, height: 705, fill: '#FFFFFF', cornerRadius: 24, stroke: '#333333', strokeWidth: 12 },
-          { type: 'image', x: 1340, y: 268, width: 351, height: 681, placeholder: true, editable: true },
-          { type: 'image', x: 120, y: 991, width: 118, height: 20, url: 'assets/icons/yeogi-logo.svg' },
-          { type: 'text', x: 260, y: 990, content: '2026 © GC Company Corp. All rights reserved.', fontSize: 20, fontWeight: '500', fill: '#BBBBBB', fontFamily: 'Pretendard', letterSpacing: -0.2, lineHeight: 1.4 },
-          { type: 'text', x: 1680, y: 990, content: 'P1', fontSize: 20, fontWeight: '500', fill: '#999999', fontFamily: 'Pretendard', letterSpacing: -0.2, lineHeight: 1.4, editable: true, textAlign: 'right', width: 120 }
-        ]
-      },
-      mobile03: {
-        id: 'mobile03',
-        name: 'Type 03',
-        category: 'Mobile',
-        penId: 'E4jLR',
-        elements: [
-          { type: 'rect', x: 0, y: 0, width: 1920, height: 1080, fill: '#FFFFFF' },
-          { type: 'text', x: 120, y: 100, content: '주요장점', fontSize: 32, fontWeight: '700', fill: '#BBBBBB', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.3, editable: true },
-          { type: 'text', x: 120, y: 152, content: '다양한 화면 구성', fontSize: 48, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.48, lineHeight: 1.3, editable: true },
-          { type: 'text', x: 134, y: 295, content: '01. 첫 번째 화면', fontSize: 32, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.5, width: 480, editable: true },
-          { type: 'text', x: 134, y: 356, content: '주요 기능을 한눈에 확인하고 빠르게 접근할 수 있습니다.\n직관적인 인터페이스로 원하는 작업을 쉽게 시작하세요.', fontSize: 20, fontWeight: '500', fill: '#666666', fontFamily: 'Pretendard', letterSpacing: -0.24, lineHeight: 1.5, width: 480, editable: true },
-          { type: 'rect', x: 134, y: 467, width: 480, height: 792, fill: '#FFFFFF', cornerRadius: 24, stroke: '#333333', strokeWidth: 12 },
-          { type: 'image', x: 146, y: 479, width: 456, height: 768, placeholder: true, editable: true },
-          { type: 'text', x: 720, y: 295, content: '02. 두 번째 화면', fontSize: 32, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.5, width: 480, editable: true },
-          { type: 'text', x: 720, y: 356, content: '상세 정보를 확인하고 필요한 작업을 수행합니다. 다양한 옵션과 설정을 통해 세밀한 조정이 가능합니다.', fontSize: 20, fontWeight: '500', fill: '#666666', fontFamily: 'Pretendard', letterSpacing: -0.24, lineHeight: 1.5, width: 480, editable: true },
-          { type: 'rect', x: 720, y: 467, width: 480, height: 792, fill: '#FFFFFF', cornerRadius: 24, stroke: '#333333', strokeWidth: 12 },
-          { type: 'image', x: 732, y: 479, width: 456, height: 768, placeholder: true, editable: true },
-          { type: 'text', x: 1306, y: 295, content: '03. 세 번째 화면', fontSize: 32, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.5, width: 480, editable: true },
-          { type: 'text', x: 1306, y: 356, content: '최종 결과를 확인하고 완료할 수 있습니다. 모든 변경사항을 검토하고 안전하게 저장하세요.', fontSize: 20, fontWeight: '500', fill: '#666666', fontFamily: 'Pretendard', letterSpacing: -0.24, lineHeight: 1.5, width: 480, editable: true },
-          { type: 'rect', x: 1306, y: 467, width: 480, height: 792, fill: '#FFFFFF', cornerRadius: 24, stroke: '#333333', strokeWidth: 12 },
-          { type: 'image', x: 1318, y: 479, width: 456, height: 768, placeholder: true, editable: true }
-        ]
-      },
-      mobile04: {
-        id: 'mobile04',
-        name: 'Type 04',
-        category: 'Mobile',
-        penId: 'vyNMw',
-        elements: [
-          { type: 'rect', x: 0, y: 0, width: 1920, height: 1080, fill: '#FFFFFF' },
-          { type: 'rect', x: 0, y: 375, width: 1920, height: 705, fill: '#F7F7F7' },
-          { type: 'text', x: 120, y: 100, content: '주요장점', fontSize: 32, fontWeight: '700', fill: '#BBBBBB', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.3, editable: true },
-          { type: 'text', x: 120, y: 152, content: '예약률을 높이는\n다양한 노출 구좌', fontSize: 48, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.48, lineHeight: 1.3, editable: true },
-          { type: 'text', x: 739, y: 132, content: '원하는 기간동안 추가 수수료를 설정하여 다양한 노출 구좌를 확보해보세요.\n추천 영역, B2B 기획전 등 다양한 노출 혜택을 통해\n더 많은 고객에게 내 숙소를 알리고, 예약률을 높일 수 있어요.', fontSize: 32, fontWeight: '500', fill: '#666666', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.5, editable: true },
-          { type: 'text', x: 120, y: 478, content: 'Step 1', fontSize: 20, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.24, editable: true },
-          { type: 'text', x: 120, y: 513, content: '추가 노출을 통해 예약 기회 확대', fontSize: 20, fontWeight: '500', fill: '#666666', fontFamily: 'Pretendard', letterSpacing: -0.24, editable: true },
-          { type: 'rect', x: 120, y: 586, width: 346, height: 600, fill: '#FFFFFF', cornerRadius: 24, stroke: '#333333', strokeWidth: 12 },
-          { type: 'image', x: 132, y: 598, width: 322, height: 576, placeholder: true, editable: true },
-          { type: 'text', x: 566, y: 478, content: 'Step 2', fontSize: 20, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.24, editable: true },
-          { type: 'text', x: 566, y: 513, content: '기업 고객 대상 특별 프로모션', fontSize: 20, fontWeight: '500', fill: '#666666', fontFamily: 'Pretendard', letterSpacing: -0.24, editable: true },
-          { type: 'rect', x: 566, y: 586, width: 346, height: 600, fill: '#FFFFFF', cornerRadius: 24, stroke: '#333333', strokeWidth: 12 },
-          { type: 'image', x: 578, y: 598, width: 322, height: 576, placeholder: true, editable: true },
-          { type: 'text', x: 1012, y: 478, content: 'Step 3', fontSize: 20, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.24, editable: true },
-          { type: 'text', x: 1012, y: 513, content: '상위 랭킹으로 가시성 향상', fontSize: 20, fontWeight: '500', fill: '#666666', fontFamily: 'Pretendard', letterSpacing: -0.24, editable: true },
-          { type: 'rect', x: 1012, y: 586, width: 346, height: 600, fill: '#FFFFFF', cornerRadius: 24, stroke: '#333333', strokeWidth: 12 },
-          { type: 'image', x: 1024, y: 598, width: 322, height: 576, placeholder: true, editable: true },
-          { type: 'text', x: 1458, y: 478, content: 'Step 4', fontSize: 20, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.24, editable: true },
-          { type: 'text', x: 1458, y: 513, content: '타겟 고객에게 직접 리치', fontSize: 20, fontWeight: '500', fill: '#666666', fontFamily: 'Pretendard', letterSpacing: -0.24, editable: true },
-          { type: 'rect', x: 1458, y: 586, width: 346, height: 600, fill: '#FFFFFF', cornerRadius: 24, stroke: '#333333', strokeWidth: 12 },
-          { type: 'image', x: 1470, y: 598, width: 322, height: 576, placeholder: true, editable: true }
-        ]
-      },
+    // 현재 슬라이드가 Main Cover, Final Cover, Index면 빈 문자열 반환
+    const currentTemplateId = slides[slideIndex].templateId;
+    if (currentTemplateId.startsWith('maincover') || currentTemplateId.startsWith('finalcover') || currentTemplateId.startsWith('index')) {
+      return '';
+    }
 
-      // PC Templates (4개)
-      pc01: {
-        id: 'pc01',
-        name: 'Type 01',
-        category: 'PC',
-        penId: '1au4g',
-        elements: [
-          { type: 'rect', x: 0, y: 0, width: 1920, height: 1080, fill: '#FFFFFF' },
-          { type: 'text', x: 120, y: 100, content: '주요장점', fontSize: 32, fontWeight: '700', fill: '#BBBBBB', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.3, editable: true },
-          { type: 'text', x: 120, y: 152, content: 'PC 버전 메인 화면 소개', fontSize: 48, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.48, lineHeight: 1.3, editable: true },
-          { type: 'text', x: 739, y: 132, content: '원하는 기간동안 추가 수수료를 설정하여 다양한 노출 구좌를 확보해보세요.\n추천 영역, B2B 기획전 등 다양한 노출 혜택을 통해\n더 많은 고객에게 내 숙소를 알리고, 예약률을 높일 수 있어요.', fontSize: 32, fontWeight: '500', fill: '#666666', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.5, editable: true },
-          { type: 'rect', x: 335, y: 399, width: 1250, height: 918, fill: '#FFFFFF', cornerRadius: 24, stroke: '#333333', strokeWidth: 11 },
-          { type: 'image', x: 346, y: 410, width: 1228, height: 896, placeholder: true, editable: true },
-          { type: 'image', x: 120, y: 991, width: 118, height: 20, url: 'assets/icons/yeogi-logo.svg' },
-          { type: 'text', x: 260, y: 990, content: '2026 © GC Company Corp. All rights reserved.', fontSize: 20, fontWeight: '500', fill: '#BBBBBB', fontFamily: 'Pretendard', letterSpacing: -0.2, lineHeight: 1.4 },
-          { type: 'text', x: 1680, y: 990, content: 'P1', fontSize: 20, fontWeight: '500', fill: '#999999', fontFamily: 'Pretendard', letterSpacing: -0.2, lineHeight: 1.4, editable: true, textAlign: 'right', width: 120 }
-        ]
-      },
-      pc02: {
-        id: 'pc02',
-        name: 'Type 02',
-        category: 'PC',
-        penId: '6x9U1',
-        elements: [
-          { type: 'rect', x: 0, y: 0, width: 1920, height: 1080, fill: '#FFFFFF' },
-          { type: 'text', x: 120, y: 100, content: '주요장점', fontSize: 32, fontWeight: '700', fill: '#BBBBBB', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.3, editable: true },
-          { type: 'text', x: 120, y: 152, content: '서비스 비교 분석 화면', fontSize: 48, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.48, lineHeight: 1.3, editable: true },
-          { type: 'text', x: 739, y: 132, content: '원하는 기간동안 추가 수수료를 설정하여 다양한 노출 구좌를 확보해보세요.\n추천 영역, B2B 기획전 등 다양한 노출 혜택을 통해\n더 많은 고객에게 내 숙소를 알리고, 예약률을 높일 수 있어요.', fontSize: 32, fontWeight: '500', fill: '#666666', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.5, editable: true },
-          { type: 'rect', x: 137, y: 400, width: 805, height: 539, fill: '#FFFFFF', cornerRadius: 24, stroke: '#333333', strokeWidth: 11 },
-          { type: 'rect', x: 148, y: 411, width: 783, height: 60, fill: '#FFF3E0' },
-          { type: 'image', x: 148, y: 471, width: 783, height: 457, placeholder: true, editable: true },
-          { type: 'rect', x: 1005, y: 400, width: 805, height: 539, fill: '#FFFFFF', cornerRadius: 24, stroke: '#333333', strokeWidth: 11 },
-          { type: 'rect', x: 1016, y: 411, width: 783, height: 60, fill: '#E8F5E9' },
-          { type: 'image', x: 1016, y: 471, width: 783, height: 457, placeholder: true, editable: true },
-          { type: 'image', x: 120, y: 991, width: 118, height: 20, url: 'assets/icons/yeogi-logo.svg' },
-          { type: 'text', x: 260, y: 990, content: '2026 © GC Company Corp. All rights reserved.', fontSize: 20, fontWeight: '500', fill: '#BBBBBB', fontFamily: 'Pretendard', letterSpacing: -0.2, lineHeight: 1.4 },
-          { type: 'text', x: 1680, y: 990, content: 'P1', fontSize: 20, fontWeight: '500', fill: '#999999', fontFamily: 'Pretendard', letterSpacing: -0.2, lineHeight: 1.4, editable: true, textAlign: 'right', width: 120 }
-        ]
-      },
-      pc03: {
-        id: 'pc03',
-        name: 'Type 03',
-        category: 'PC',
-        penId: 'pq3Xe',
-        elements: [
-          { type: 'rect', x: 0, y: 0, width: 1920, height: 1080, fill: '#FFFFFF' },
-          { type: 'text', x: 120, y: 100, content: '주요장점', fontSize: 32, fontWeight: '700', fill: '#BBBBBB', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.3, editable: true },
-          { type: 'text', x: 120, y: 152, content: '반응형 디자인 구현 사례', fontSize: 48, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.48, lineHeight: 1.3, editable: true },
-          { type: 'text', x: 739, y: 132, content: '원하는 기간동안 추가 수수료를 설정하여 다양한 노출 구좌를 확보해보세요.\n추천 영역, B2B 기획전 등 다양한 노출 혜택을 통해\n더 많은 고객에게 내 숙소를 알리고, 예약률을 높일 수 있어요.', fontSize: 32, fontWeight: '500', fill: '#666666', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.5, editable: true },
-          { type: 'rect', x: 237, y: 400, width: 1084, height: 539, fill: '#FFFFFF', cornerRadius: 24, stroke: '#333333', strokeWidth: 11 },
-          { type: 'rect', x: 248, y: 411, width: 1062, height: 70, fill: '#F3E5F5' },
-          { type: 'image', x: 248, y: 481, width: 1062, height: 447, placeholder: true, editable: true },
-          { type: 'rect', x: 1384, y: 400, width: 299, height: 539, fill: '#FFFFFF', cornerRadius: 24, stroke: '#333333', strokeWidth: 11 },
-          { type: 'rect', x: 1395, y: 411, width: 277, height: 70, fill: '#E3F2FD' },
-          { type: 'image', x: 1395, y: 481, width: 277, height: 447, placeholder: true, editable: true },
-          { type: 'image', x: 120, y: 991, width: 118, height: 20, url: 'assets/icons/yeogi-logo.svg' },
-          { type: 'text', x: 260, y: 990, content: '2026 © GC Company Corp. All rights reserved.', fontSize: 20, fontWeight: '500', fill: '#BBBBBB', fontFamily: 'Pretendard', letterSpacing: -0.2, lineHeight: 1.4 },
-          { type: 'text', x: 1680, y: 990, content: 'P1', fontSize: 20, fontWeight: '500', fill: '#999999', fontFamily: 'Pretendard', letterSpacing: -0.2, lineHeight: 1.4, editable: true, textAlign: 'right', width: 120 }
-        ]
-      },
-      pc04: {
-        id: 'pc04',
-        name: 'Type 04',
-        category: 'PC',
-        penId: 'iUFcs',
-        elements: [
-          { type: 'rect', x: 0, y: 0, width: 1920, height: 1080, fill: '#FFFFFF' },
-          { type: 'text', x: 120, y: 100, content: '주요장점', fontSize: 32, fontWeight: '700', fill: '#BBBBBB', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.3, editable: true },
-          { type: 'text', x: 120, y: 152, content: '주요 기능 상세 설명', fontSize: 48, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.48, lineHeight: 1.3, editable: true },
-          { type: 'text', x: 739, y: 132, content: '원하는 기간동안 추가 수수료를 설정하여 다양한 노출 구좌를 확보해보세요.\n추천 영역, B2B 기획전 등 다양한 노출 혜택을 통해\n더 많은 고객에게 내 숙소를 알리고, 예약률을 높일 수 있어요.', fontSize: 32, fontWeight: '500', fill: '#666666', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.5, editable: true },
-          { type: 'rect', x: 120, y: 400, width: 720, height: 321, fill: '#FFFFFF', cornerRadius: 12, stroke: '#333333', strokeWidth: 11 },
-          { type: 'text', x: 160, y: 450, content: '주요 기능 목록', fontSize: 32, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.5, editable: true },
-          { type: 'rect', x: 903, y: 400, width: 900, height: 539, fill: '#FFFFFF', cornerRadius: 24, stroke: '#333333', strokeWidth: 11 },
-          { type: 'rect', x: 914, y: 411, width: 878, height: 60, fill: '#FFF9C4' },
-          { type: 'image', x: 914, y: 471, width: 878, height: 457, placeholder: true, editable: true },
-          { type: 'image', x: 120, y: 991, width: 118, height: 20, url: 'assets/icons/yeogi-logo.svg' },
-          { type: 'text', x: 260, y: 990, content: '2026 © GC Company Corp. All rights reserved.', fontSize: 20, fontWeight: '500', fill: '#BBBBBB', fontFamily: 'Pretendard', letterSpacing: -0.2, lineHeight: 1.4 },
-          { type: 'text', x: 1680, y: 990, content: 'P1', fontSize: 20, fontWeight: '500', fill: '#999999', fontFamily: 'Pretendard', letterSpacing: -0.2, lineHeight: 1.4, editable: true, textAlign: 'right', width: 120 }
-        ]
-      },
+    return `P${pageNumber}`;
+  };
 
-      // FAQ Templates (2개)
-      faq01: {
-        id: 'faq01',
-        name: 'Type 01',
-        category: 'FAQ',
-        penId: 'BZVHu',
-        elements: [
-          { type: 'rect', x: 0, y: 0, width: 1920, height: 1080, fill: '#FFFFFF' },
-          { type: 'text', x: 120, y: 100, content: '고객지원', fontSize: 32, fontWeight: '700', fill: '#BBBBBB', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.3, editable: true },
-          { type: 'text', x: 120, y: 152, content: '자주 묻는 질문', fontSize: 48, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.48, lineHeight: 1.3, editable: true },
-          { type: 'rect', x: 120, y: 256, width: 820, height: 160, fill: '#F7F7F7', cornerRadius: 20 },
-          { type: 'text', x: 163, y: 290, content: 'Q1. 멤버십 할인 설정 방법은?', fontSize: 32, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.5, width: 657, editable: true },
-          { type: 'text', x: 163, y: 348, content: '파트너센터에서 객실과 할인을 설정할 수 있어요.', fontSize: 20, fontWeight: '500', fill: '#666666', fontFamily: 'Pretendard', letterSpacing: -0.2, lineHeight: 1.5, width: 585, editable: true },
-          { type: 'rect', x: 980, y: 256, width: 820, height: 160, fill: '#F7F7F7', cornerRadius: 20 },
-          { type: 'text', x: 1023, y: 290, content: 'Q2. 모든 객실에 할인 설정이 가능한가요?', fontSize: 32, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.5, width: 657, editable: true },
-          { type: 'text', x: 1023, y: 348, content: '네, 등록된 객실이라면 모두 설정 가능해요.', fontSize: 20, fontWeight: '500', fill: '#666666', fontFamily: 'Pretendard', letterSpacing: -0.2, lineHeight: 1.5, width: 414, editable: true },
-          { type: 'rect', x: 120, y: 436, width: 820, height: 160, fill: '#F7F7F7', cornerRadius: 20 },
-          { type: 'text', x: 163, y: 470, content: 'Q3. 할인 제외 날짜 설정 제한은?', fontSize: 32, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.5, width: 657, editable: true },
-          { type: 'text', x: 163, y: 528, content: '최대 120일까지 설정할 수 있어요.', fontSize: 20, fontWeight: '500', fill: '#666666', fontFamily: 'Pretendard', letterSpacing: -0.2, lineHeight: 1.5, width: 588, editable: true },
-          { type: 'rect', x: 980, y: 436, width: 820, height: 160, fill: '#F7F7F7', cornerRadius: 20 },
-          { type: 'text', x: 1023, y: 470, content: 'Q4. 기존 엘리트 가입은 유지되나요?', fontSize: 32, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.5, width: 657, editable: true },
-          { type: 'text', x: 1023, y: 528, content: '네, 유지돼요. 변경은 파트너센터를 이용해주세요.', fontSize: 20, fontWeight: '500', fill: '#666666', fontFamily: 'Pretendard', letterSpacing: -0.2, lineHeight: 1.5, width: 663, editable: true },
-          { type: 'rect', x: 120, y: 616, width: 820, height: 160, fill: '#F7F7F7', cornerRadius: 20 },
-          { type: 'text', x: 163, y: 650, content: 'Q5. 엘리트 플러스에도 설정 가능한가요?', fontSize: 32, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.5, width: 657, editable: true },
-          { type: 'text', x: 163, y: 708, content: '엘리트 할인 설정 시 플러스 설정도 가능해요.', fontSize: 20, fontWeight: '500', fill: '#666666', fontFamily: 'Pretendard', letterSpacing: -0.2, lineHeight: 1.5, width: 663, editable: true },
-          { type: 'rect', x: 980, y: 616, width: 820, height: 160, fill: '#F7F7F7', cornerRadius: 20 },
-          { type: 'text', x: 1023, y: 650, content: 'Q6. 다른 특가와 함께 등록 가능한가요?', fontSize: 32, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.5, width: 657, editable: true },
-          { type: 'text', x: 1023, y: 708, content: '네, 가능해요. 최저가 객실 기준으로 노출돼요.', fontSize: 20, fontWeight: '500', fill: '#666666', fontFamily: 'Pretendard', letterSpacing: -0.2, lineHeight: 1.5, width: 663, editable: true },
-          { type: 'rect', x: 120, y: 796, width: 820, height: 160, fill: '#F7F7F7', cornerRadius: 20 },
-          { type: 'text', x: 163, y: 830, content: 'Q7. 모든 고객에게 노출되나요?', fontSize: 32, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.5, width: 657, editable: true },
-          { type: 'text', x: 163, y: 888, content: '아니요, 멤버십 회원에게만 노출돼요.', fontSize: 20, fontWeight: '500', fill: '#666666', fontFamily: 'Pretendard', letterSpacing: -0.2, lineHeight: 1.5, width: 663, editable: true },
-          { type: 'rect', x: 980, y: 796, width: 820, height: 160, fill: '#F7F7F7', cornerRadius: 20 },
-          { type: 'text', x: 1023, y: 830, content: 'Q8. 질문을 입력하세요.', fontSize: 32, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.5, width: 657, editable: true },
-          { type: 'text', x: 1023, y: 888, content: '답변을 입력하세요.', fontSize: 20, fontWeight: '500', fill: '#666666', fontFamily: 'Pretendard', letterSpacing: -0.2, lineHeight: 1.5, width: 663, editable: true },
-          { type: 'image', x: 120, y: 991, width: 118, height: 20, url: 'assets/icons/yeogi-logo.svg' },
-          { type: 'text', x: 260, y: 990, content: '2026 © GC Company Corp. All rights reserved.', fontSize: 20, fontWeight: '500', fill: '#BBBBBB', fontFamily: 'Pretendard', letterSpacing: -0.2, lineHeight: 1.4 },
-          { type: 'text', x: 1680, y: 990, content: 'P1', fontSize: 20, fontWeight: '500', fill: '#999999', fontFamily: 'Pretendard', letterSpacing: -0.2, lineHeight: 1.4, editable: true, textAlign: 'right', width: 120 }
-        ]
-      },
-      faq02: {
-        id: 'faq02',
-        name: 'Type 02',
-        category: 'FAQ',
-        penId: 'TFgFS',
-        elements: [
-          { type: 'rect', x: 0, y: 0, width: 1920, height: 1080, fill: '#FFFFFF' },
-          { type: 'text', x: 120, y: 100, content: '고객지원', fontSize: 32, fontWeight: '700', fill: '#BBBBBB', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.3, editable: true },
-          { type: 'text', x: 120, y: 152, content: '자주 묻는 질문', fontSize: 48, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.48, lineHeight: 1.3, editable: true },
-          { type: 'text', x: 700, y: 120, content: 'Q1. 멤버십 할인을 설정하고 싶어요, 어떻게 해야 하나요?', fontSize: 32, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.5, editable: true },
-          { type: 'text', x: 700, y: 172, content: '파트너센터에서 원하는 객실과 할인을 직접 설정할 수 있어요.', fontSize: 20, fontWeight: '500', fill: '#666666', fontFamily: 'Pretendard', letterSpacing: -0.2, lineHeight: 1.5, editable: true },
-          { type: 'line', x1: 700, y1: 232, x2: 1800, y2: 232, stroke: '#DCDCDC', strokeWidth: 1 },
-          { type: 'text', x: 700, y: 272, content: 'Q2. 객실 종류 상관없이 멤버십 할인 설정이 가능한가요?', fontSize: 32, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.5, editable: true },
-          { type: 'text', x: 700, y: 324, content: '네, 등록된 객실이라면 모두 설정할 수 있어요.', fontSize: 20, fontWeight: '500', fill: '#666666', fontFamily: 'Pretendard', letterSpacing: -0.2, lineHeight: 1.5, editable: true },
-          { type: 'line', x1: 700, y1: 384, x2: 1800, y2: 384, stroke: '#DCDCDC', strokeWidth: 1 },
-          { type: 'text', x: 700, y: 424, content: 'Q3. 할인 제외 날짜 설정에 제한이 있나요?', fontSize: 32, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.5, editable: true },
-          { type: 'text', x: 700, y: 476, content: '네, 최대 120일까지 설정할 수 있어요.', fontSize: 20, fontWeight: '500', fill: '#666666', fontFamily: 'Pretendard', letterSpacing: -0.2, lineHeight: 1.5, editable: true },
-          { type: 'line', x1: 700, y1: 536, x2: 1800, y2: 536, stroke: '#DCDCDC', strokeWidth: 1 },
-          { type: 'text', x: 700, y: 576, content: 'Q4. 기존 엘리트 가입은 유지되나요? 재설정이 필요한가요?', fontSize: 32, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.5, editable: true },
-          { type: 'text', x: 700, y: 628, content: '네, 그대로 유지돼요. 할인 설정을 변경하고 싶다면 파트너센터를 이용해주세요.', fontSize: 20, fontWeight: '500', fill: '#666666', fontFamily: 'Pretendard', letterSpacing: -0.2, lineHeight: 1.5, editable: true },
-          { type: 'line', x1: 700, y1: 688, x2: 1800, y2: 688, stroke: '#DCDCDC', strokeWidth: 1 },
-          { type: 'text', x: 700, y: 728, content: 'Q5. 질문을 입력하세요.', fontSize: 32, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.5, editable: true },
-          { type: 'text', x: 700, y: 780, content: '답변을 입력하세요.', fontSize: 20, fontWeight: '500', fill: '#666666', fontFamily: 'Pretendard', letterSpacing: -0.2, lineHeight: 1.5, editable: true },
-          { type: 'image', x: 120, y: 991, width: 118, height: 20, url: 'assets/icons/yeogi-logo.svg' },
-          { type: 'text', x: 260, y: 990, content: '2026 © GC Company Corp. All rights reserved.', fontSize: 20, fontWeight: '500', fill: '#BBBBBB', fontFamily: 'Pretendard', letterSpacing: -0.2, lineHeight: 1.4 },
-          { type: 'text', x: 1680, y: 990, content: 'P1', fontSize: 20, fontWeight: '500', fill: '#999999', fontFamily: 'Pretendard', letterSpacing: -0.2, lineHeight: 1.4, editable: true, textAlign: 'right', width: 120 }
-        ]
-      },
-
-      // Core Value Templates (6개)
-      corevalue01: {
-        id: 'corevalue01',
-        name: 'Type 01',
-        category: 'Core Value',
-        penId: 'JRWAo',
-        elements: [
-          { type: 'rect', x: 0, y: 0, width: 1920, height: 1080, fill: '#FFFFFF' },
-
-          // titleGroup (x:1050, y:140, gap:12)
-          { type: 'text', x: 1050, y: 140, content: '핵심가치', fontSize: 32, fontWeight: '700', fill: '#BBBBBB', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.3, editable: true },
-          { type: 'text', x: 1050, y: 184, content: '메인 타이틀 최대 1줄', fontSize: 48, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.48, lineHeight: 1.3, editable: true, maxLines: 1, width: 750 },
-
-          // bodyText
-          { type: 'text', x: 1050, y: 281, content: '최대 2줄 영역입니다. 핵심만 담아 전달력을 높여 보세요. 간결한 문구는 시선을 사로잡고 정보를 명확히 전달합니다.', fontSize: 20, fontWeight: '500', fill: '#666666', fontFamily: 'Pretendard', letterSpacing: -0.2, lineHeight: 1.5, editable: true, maxLines: 2, width: 750 },
-
-          // infoContent box (x:1050, y:381, width:750, padding:40, gap:40)
-          // 컨테이너 높이 계산: padding 40 + (타이틀 48 + gap 16 + 본문 60) × 3 + 아이템간 gap 40 × 2 + padding 40 = 532
-          { type: 'rect', x: 1050, y: 381, width: 750, height: 532, fill: '#F7F7F7', cornerRadius: 24 },
-
-          // item 1 (padding:40 → starts at y:476)
-          { type: 'text', x: 1090, y: 476, content: '타이틀 최대 1줄', fontSize: 32, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.5, editable: true, maxLines: 1, width: 670 },
-          { type: 'text', x: 1090, y: 540, content: '최대 2줄 영역입니다. 핵심만 담아 전달력을 높여 보세요. 간결한 문구는 시선을 사로잡고 정보를 명확히 전달합니다.', fontSize: 20, fontWeight: '500', fill: '#666666', fontFamily: 'Pretendard', letterSpacing: -0.2, lineHeight: 1.5, editable: true, maxLines: 2, width: 670 },
-
-          // item 2 (item1 y:476 + 타이틀 48 + gap 16 + 본문 60 + 아이템간 gap 40 = 640)
-          { type: 'text', x: 1090, y: 640, content: '타이틀 최대 1줄', fontSize: 32, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.5, editable: true, maxLines: 1, width: 670 },
-          { type: 'text', x: 1090, y: 704, content: '최대 2줄 영역입니다. 핵심만 담아 전달력을 높여 보세요. 간결한 문구는 시선을 사로잡고 정보를 명확히 전달합니다.', fontSize: 20, fontWeight: '500', fill: '#666666', fontFamily: 'Pretendard', letterSpacing: -0.2, lineHeight: 1.5, editable: true, maxLines: 2, width: 670 },
-
-          // item 3 (item2 y:640 + 타이틀 48 + gap 16 + 본문 60 + 아이템간 gap 40 = 804)
-          { type: 'text', x: 1090, y: 804, content: '타이틀 최대 1줄', fontSize: 32, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.5, editable: true, maxLines: 1, width: 670 },
-          { type: 'text', x: 1090, y: 868, content: '최대 2줄 영역입니다. 핵심만 담아 전달력을 높여 보세요. 간결한 문구는 시선을 사로잡고 정보를 명확히 전달합니다.', fontSize: 20, fontWeight: '500', fill: '#666666', fontFamily: 'Pretendard', letterSpacing: -0.2, lineHeight: 1.5, editable: true, maxLines: 2, width: 670 },
-
-          { type: 'image', x: 120, y: 991, width: 118, height: 20, url: 'assets/icons/yeogi-logo.svg' },
-          { type: 'text', x: 260, y: 990, content: '2026 © GC Company Corp. All rights reserved.', fontSize: 20, fontWeight: '500', fill: '#BBBBBB', fontFamily: 'Pretendard', letterSpacing: -0.2, lineHeight: 1.4 },
-          { type: 'text', x: 1680, y: 990, content: 'P1', fontSize: 20, fontWeight: '500', fill: '#999999', fontFamily: 'Pretendard', letterSpacing: -0.2, lineHeight: 1.4, editable: true, textAlign: 'right', width: 120 }
-        ]
-      },
-      corevalue02: {
-        id: 'corevalue02',
-        name: 'Type 02',
-        category: 'Core Value',
-        penId: 'f4RrF',
-        elements: [
-          { type: 'rect', x: 0, y: 0, width: 1920, height: 1080, fill: '#F7F7F7' },
-          { type: 'text', x: 120, y: 100, content: '핵심가치', fontSize: 32, fontWeight: '700', fill: '#BBBBBB', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.3, editable: true },
-          { type: 'text', x: 120, y: 144, content: '메인 타이틀 최대 10자 이내', fontSize: 48, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.48, lineHeight: 1.3, editable: true },
-          { type: 'text', x: 739, y: 132, content: '최대 3줄 이내의 공간에 핵심 정보만 담아 메시지의 전달력을 극대화하십시오.\n간결하게 정돈된 문구는 사용자의 시선을 사로잡고 정보를 명확하게 전달합니다.', fontSize: 32, fontWeight: '500', fill: '#666666', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.5, width: 1061, editable: true },
-          { type: 'rect', x: 120, y: 400, width: 1680, height: 550, fill: '#FFFFFF', cornerRadius: 24 },
-          { type: 'image', x: 120, y: 991, width: 118, height: 20, url: 'assets/icons/yeogi-logo.svg' },
-          { type: 'text', x: 260, y: 990, content: '2026 © GC Company Corp. All rights reserved.', fontSize: 20, fontWeight: '500', fill: '#BBBBBB', fontFamily: 'Pretendard', letterSpacing: -0.2, lineHeight: 1.4 },
-          { type: 'text', x: 1680, y: 990, content: 'P1', fontSize: 20, fontWeight: '500', fill: '#999999', fontFamily: 'Pretendard', letterSpacing: -0.2, lineHeight: 1.4, editable: true, textAlign: 'right', width: 120 }
-        ]
-      },
-      corevalue03: {
-        id: 'corevalue03',
-        name: 'Type 03',
-        category: 'Core Value',
-        penId: 'uo644',
-        elements: [
-          { type: 'rect', x: 0, y: 0, width: 1920, height: 1080, fill: '#F7F7F7' },
-
-          // titleGroup (x:120, y:100, gap:12)
-          { type: 'text', x: 120, y: 100, content: '핵심가치', fontSize: 32, fontWeight: '700', fill: '#BBBBBB', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.3, editable: true },
-          { type: 'text', x: 120, y: 144, content: '메인 타이틀 최대 10자 이내', fontSize: 48, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.48, lineHeight: 1.3, editable: true },
-
-          // bodyText
-          { type: 'text', x: 739, y: 132, content: '최대 3줄 이내의 공간에 핵심 정보만 담아 메시지의 전달력을 극대화하십시오.\n간결하게 정돈된 문구는 사용자의 시선을 사로잡고 정보를 명확하게 전달합니다.', fontSize: 32, fontWeight: '500', fill: '#666666', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.5, width: 1061, editable: true },
-
-          // leftContainer (x:120, y:400, width:820, height:550, padding:80, gap:32)
-          { type: 'rect', x: 120, y: 400, width: 820, height: 550, fill: '#FFFFFF', cornerRadius: 24 },
-          // leftContent (padding:80, gap:16) → starts at y:480
-          { type: 'text', x: 200, y: 480, content: '명확한 커뮤니케이션', fontSize: 32, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.5, editable: true },
-          { type: 'text', x: 200, y: 528, content: '모든 과정을 투명하게 공개하고 고객과 지속적으로 소통합니다. 정확한 정보 전달로 신뢰를 구축합니다.', fontSize: 20, fontWeight: '500', fill: '#666666', fontFamily: 'Pretendard', letterSpacing: -0.2, lineHeight: 1.5, editable: true },
-
-          // rightContainer (x:980, y:400, width:820, height:550, padding:80, gap:32)
-          { type: 'rect', x: 980, y: 400, width: 820, height: 550, fill: '#FFFFFF', cornerRadius: 24 },
-          // rightContent (padding:80, gap:16) → starts at y:480
-          { type: 'text', x: 1060, y: 480, content: '책임감 있는 실행', fontSize: 32, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.5, editable: true },
-          { type: 'text', x: 1060, y: 528, content: '약속한 일정과 품질을 반드시 지키며, 문제 발생 시 신속하게 대응하고 해결합니다.', fontSize: 20, fontWeight: '500', fill: '#666666', fontFamily: 'Pretendard', letterSpacing: -0.2, lineHeight: 1.5, editable: true },
-
-          { type: 'image', x: 120, y: 991, width: 118, height: 20, url: 'assets/icons/yeogi-logo.svg' },
-          { type: 'text', x: 260, y: 990, content: '2026 © GC Company Corp. All rights reserved.', fontSize: 20, fontWeight: '500', fill: '#BBBBBB', fontFamily: 'Pretendard', letterSpacing: -0.2, lineHeight: 1.4 },
-          { type: 'text', x: 1680, y: 990, content: 'P1', fontSize: 20, fontWeight: '500', fill: '#999999', fontFamily: 'Pretendard', letterSpacing: -0.2, lineHeight: 1.4, editable: true, textAlign: 'right', width: 120 }
-        ]
-      },
-      corevalue04: {
-        id: 'corevalue04',
-        name: 'Type 04',
-        category: 'Core Value',
-        penId: '3pmjw',
-        elements: [
-          { type: 'rect', x: 0, y: 0, width: 1920, height: 1080, fill: '#F7F7F7' },
-
-          // titleGroup
-          { type: 'text', x: 120, y: 100, content: '핵심가치', fontSize: 32, fontWeight: '700', fill: '#BBBBBB', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.3, editable: true },
-          { type: 'text', x: 120, y: 144, content: '메인 타이틀 최대 10자 이내', fontSize: 48, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.48, lineHeight: 1.3, editable: true },
-
-          // bodyText
-          { type: 'text', x: 739, y: 132, content: '최대 3줄 이내의 공간에 핵심 정보만 담아 메시지의 전달력을 극대화하십시오.\n간결하게 정돈된 문구는 사용자의 시선을 사로잡고 정보를 명확하게 전달합니다.', fontSize: 32, fontWeight: '500', fill: '#666666', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.5, width: 1061, editable: true },
-
-          // container 1 (width: (1680-80)/3 = 533.33)
-          { type: 'rect', x: 120, y: 400, width: 533, height: 550, fill: '#FFFFFF', cornerRadius: 24 },
-          { type: 'text', x: 120, y: 675, content: '01. 전문성', fontSize: 32, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.5, textAlign: 'center', width: 533, editable: true },
-          { type: 'text', x: 200, y: 723, content: '10년 이상의 경험과 노하우로 최고의 서비스를 제공합니다', fontSize: 20, fontWeight: '500', fill: '#666666', fontFamily: 'Pretendard', letterSpacing: -0.2, lineHeight: 1.5, width: 373, editable: true },
-
-          // container 2
-          { type: 'rect', x: 693, y: 400, width: 534, height: 550, fill: '#FFFFFF', cornerRadius: 24 },
-          { type: 'text', x: 693, y: 675, content: '02. 신속성', fontSize: 32, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.5, textAlign: 'center', width: 534, editable: true },
-          { type: 'text', x: 773, y: 723, content: '빠른 대응과 실행으로 고객의 시간을 절약합니다', fontSize: 20, fontWeight: '500', fill: '#666666', fontFamily: 'Pretendard', letterSpacing: -0.2, lineHeight: 1.5, width: 374, editable: true },
-
-          // container 3
-          { type: 'rect', x: 1267, y: 400, width: 533, height: 550, fill: '#FFFFFF', cornerRadius: 24 },
-          { type: 'text', x: 1267, y: 675, content: '03. 안정성', fontSize: 32, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.5, textAlign: 'center', width: 533, editable: true },
-          { type: 'text', x: 1347, y: 723, content: '검증된 시스템과 프로세스로 안정적인 운영을 보장합니다', fontSize: 20, fontWeight: '500', fill: '#666666', fontFamily: 'Pretendard', letterSpacing: -0.2, lineHeight: 1.5, width: 373, editable: true },
-
-          { type: 'image', x: 120, y: 991, width: 118, height: 20, url: 'assets/icons/yeogi-logo.svg' },
-          { type: 'text', x: 260, y: 990, content: '2026 © GC Company Corp. All rights reserved.', fontSize: 20, fontWeight: '500', fill: '#BBBBBB', fontFamily: 'Pretendard', letterSpacing: -0.2, lineHeight: 1.4 },
-          { type: 'text', x: 1680, y: 990, content: 'P1', fontSize: 20, fontWeight: '500', fill: '#999999', fontFamily: 'Pretendard', letterSpacing: -0.2, lineHeight: 1.4, editable: true, textAlign: 'right', width: 120 }
-        ]
-      },
-      corevalue05: {
-        id: 'corevalue05',
-        name: 'Type 05',
-        category: 'Core Value',
-        penId: 'vLS3n',
-        elements: [
-          { type: 'rect', x: 0, y: 0, width: 1920, height: 1080, fill: '#F7F7F7' },
-
-          // titleGroup
-          { type: 'text', x: 120, y: 100, content: '핵심가치', fontSize: 32, fontWeight: '700', fill: '#BBBBBB', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.3, editable: true },
-          { type: 'text', x: 120, y: 144, content: '메인 타이틀 최대 10자 이내', fontSize: 48, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.48, lineHeight: 1.3, editable: true },
-
-          // bodyText
-          { type: 'text', x: 739, y: 132, content: '최대 3줄 이내의 공간에 핵심 정보만 담아 메시지의 전달력을 극대화하십시오.\n간결하게 정돈된 문구는 사용자의 시선을 사로잡고 정보를 명확하게 전달합니다.', fontSize: 32, fontWeight: '500', fill: '#666666', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.5, width: 1061, editable: true },
-
-          // topRow (x:120, y:400, gap:40) - 2 containers with padding:80, gap:24
-          { type: 'rect', x: 120, y: 400, width: 820, height: 255, fill: '#FFFFFF', cornerRadius: 24 },
-          { type: 'text', x: 200, y: 591, content: '01. 기획', fontSize: 32, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.5, editable: true },
-          { type: 'text', x: 200, y: 627, content: '체계적인 프로젝트 설계', fontSize: 20, fontWeight: '500', fill: '#666666', fontFamily: 'Pretendard', letterSpacing: -0.2, lineHeight: 1.5, editable: true },
-
-          { type: 'rect', x: 980, y: 400, width: 820, height: 255, fill: '#FFFFFF', cornerRadius: 24 },
-          { type: 'text', x: 1060, y: 591, content: '02. 개발', fontSize: 32, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.5, editable: true },
-          { type: 'text', x: 1060, y: 627, content: '최신 기술로 안정적 구현', fontSize: 20, fontWeight: '500', fill: '#666666', fontFamily: 'Pretendard', letterSpacing: -0.2, lineHeight: 1.5, editable: true },
-
-          // middleRow (x:120, y:695, gap:40) - 2 containers with padding:80, gap:24
-          { type: 'rect', x: 120, y: 695, width: 820, height: 255, fill: '#FFFFFF', cornerRadius: 24 },
-          { type: 'text', x: 200, y: 886, content: '03. 디자인', fontSize: 32, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.5, editable: true },
-          { type: 'text', x: 200, y: 922, content: '사용자 중심의 UI/UX 제공', fontSize: 20, fontWeight: '500', fill: '#666666', fontFamily: 'Pretendard', letterSpacing: -0.2, lineHeight: 1.5, editable: true },
-
-          { type: 'rect', x: 980, y: 695, width: 820, height: 255, fill: '#FFFFFF', cornerRadius: 24 },
-          { type: 'text', x: 1060, y: 886, content: '04. 운영', fontSize: 32, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.5, editable: true },
-          { type: 'text', x: 1060, y: 922, content: '지속적인 유지보수와 관리', fontSize: 20, fontWeight: '500', fill: '#666666', fontFamily: 'Pretendard', letterSpacing: -0.2, lineHeight: 1.5, editable: true },
-
-          { type: 'image', x: 120, y: 991, width: 118, height: 20, url: 'assets/icons/yeogi-logo.svg' },
-          { type: 'text', x: 260, y: 990, content: '2026 © GC Company Corp. All rights reserved.', fontSize: 20, fontWeight: '500', fill: '#BBBBBB', fontFamily: 'Pretendard', letterSpacing: -0.2, lineHeight: 1.4 },
-          { type: 'text', x: 1680, y: 990, content: 'P1', fontSize: 20, fontWeight: '500', fill: '#999999', fontFamily: 'Pretendard', letterSpacing: -0.2, lineHeight: 1.4, editable: true, textAlign: 'right', width: 120 }
-        ]
-      },
-      corevalue06: {
-        id: 'corevalue06',
-        name: 'Type 06',
-        category: 'Core Value',
-        penId: 'I3ceg',
-        elements: [
-          { type: 'rect', x: 0, y: 0, width: 1920, height: 1080, fill: '#F7F7F7' },
-          { type: 'text', x: 120, y: 100, content: '서비스 비교 분석', fontSize: 48, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.48, lineHeight: 1.3, editable: true },
-
-          // 테이블 외곽 테두리
-          { type: 'rect', x: 120, y: 200, width: 1680, height: 750, fill: '#FFFFFF', stroke: '#CCCCCC', strokeWidth: 1 },
-
-          // 헤더 행 (y: 200, height: 100)
-          { type: 'rect', x: 120, y: 200, width: 240, height: 100, fill: '#E5E5E5', stroke: '#CCCCCC', strokeWidth: 1 },
-          { type: 'rect', x: 360, y: 200, width: 720, height: 100, fill: '#E5E5E5', stroke: '#CCCCCC', strokeWidth: 1 },
-          { type: 'text', x: 360, y: 229, content: '트래픽 부스트', fontSize: 32, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.3, textAlign: 'center', width: 720, editable: true },
-          { type: 'rect', x: 1080, y: 200, width: 720, height: 100, fill: '#E5E5E5', stroke: '#CCCCCC', strokeWidth: 1 },
-          { type: 'text', x: 1080, y: 229, content: '검색 랭킹 부스트', fontSize: 32, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.3, textAlign: 'center', width: 720, editable: true },
-
-          // 행 1 - 기준 (y: 300, height: 130)
-          { type: 'rect', x: 120, y: 300, width: 240, height: 130, fill: '#FFFFFF', stroke: '#CCCCCC', strokeWidth: 1 },
-          { type: 'text', x: 150, y: 340, content: '기준', fontSize: 32, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.6, opacity: 0.89, editable: true },
-          { type: 'rect', x: 360, y: 300, width: 720, height: 130, fill: '#FFFFFF', stroke: '#CCCCCC', strokeWidth: 1 },
-          { type: 'text', x: 360, y: 339, content: '결제일', fontSize: 32, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.6, textAlign: 'center', width: 720, editable: true },
-          { type: 'rect', x: 1080, y: 300, width: 720, height: 130, fill: '#FFFFFF', stroke: '#CCCCCC', strokeWidth: 1 },
-          { type: 'text', x: 1080, y: 339, content: '투숙일', fontSize: 32, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.6, textAlign: 'center', width: 720, editable: true },
-
-          // 행 2 - 날짜 지정 (y: 430, height: 130)
-          { type: 'rect', x: 120, y: 430, width: 240, height: 130, fill: '#FFFFFF', stroke: '#CCCCCC', strokeWidth: 1 },
-          { type: 'text', x: 150, y: 470, content: '날짜 지정', fontSize: 32, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.6, opacity: 0.89, editable: true },
-          { type: 'rect', x: 360, y: 430, width: 720, height: 130, fill: '#FFFFFF', stroke: '#CCCCCC', strokeWidth: 1 },
-          { type: 'text', x: 360, y: 469, content: '노출 기간', fontSize: 32, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.6, textAlign: 'center', width: 720, editable: true },
-          { type: 'rect', x: 1080, y: 430, width: 720, height: 130, fill: '#FFFFFF', stroke: '#CCCCCC', strokeWidth: 1 },
-          { type: 'text', x: 1080, y: 469, content: '투숙 날짜', fontSize: 32, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.6, textAlign: 'center', width: 720, editable: true },
-
-          // 행 3 - 과금 모델 (y: 560, height: 130)
-          { type: 'rect', x: 120, y: 560, width: 240, height: 130, fill: '#FFFFFF', stroke: '#CCCCCC', strokeWidth: 1 },
-          { type: 'text', x: 150, y: 600, content: '과금 모델', fontSize: 32, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.6, opacity: 0.89, editable: true },
-          { type: 'rect', x: 360, y: 560, width: 720, height: 130, fill: '#FFFFFF', stroke: '#CCCCCC', strokeWidth: 1 },
-          { type: 'text', x: 360, y: 599, content: '실제 예약이 발생된 건만 정산 처리', fontSize: 32, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.6, textAlign: 'center', width: 720, editable: true },
-          { type: 'rect', x: 1080, y: 560, width: 720, height: 130, fill: '#FFFFFF', stroke: '#CCCCCC', strokeWidth: 1 },
-
-          // 행 4 - 혜택 (y: 690, height: 260)
-          { type: 'rect', x: 120, y: 690, width: 240, height: 260, fill: '#FFFFFF', stroke: '#CCCCCC', strokeWidth: 1 },
-          { type: 'text', x: 150, y: 800, content: '혜택', fontSize: 32, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.6, opacity: 0.89, editable: true },
-          { type: 'rect', x: 360, y: 690, width: 720, height: 260, fill: '#FFFFFF', stroke: '#CCCCCC', strokeWidth: 1 },
-          { type: 'text', x: 390, y: 740, content: '숙소 목록 내 \'추천 영역\'에서 추가 노출\nB2B 회원 대상으로 노출 구좌 확보\n포인트 적립 기준으로 검색 랭킹 반영', fontSize: 32, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.6, width: 660, editable: true },
-          { type: 'rect', x: 1080, y: 690, width: 720, height: 260, fill: '#FFFFFF', stroke: '#CCCCCC', strokeWidth: 1 },
-          { type: 'text', x: 1080, y: 794, content: '검색 랭킹 상승', fontSize: 32, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.6, textAlign: 'center', width: 720, editable: true },
-
-          { type: 'image', x: 120, y: 991, width: 118, height: 20, url: 'assets/icons/yeogi-logo.svg' },
-          { type: 'text', x: 260, y: 990, content: '2026 © GC Company Corp. All rights reserved.', fontSize: 20, fontWeight: '500', fill: '#BBBBBB', fontFamily: 'Pretendard', letterSpacing: -0.2, lineHeight: 1.4 },
-          { type: 'text', x: 1680, y: 990, content: 'P1', fontSize: 20, fontWeight: '500', fill: '#999999', fontFamily: 'Pretendard', letterSpacing: -0.2, lineHeight: 1.4, editable: true, textAlign: 'right', width: 120 }
-        ]
-      },
-
-      // Section Cover Templates (3개)
-      section01: {
-        id: 'section01',
-        name: 'Type 01',
-        category: 'Section Cover',
-        penId: '30Xqu',
-        elements: [
-          { type: 'rect', x: 0, y: 0, width: 1920, height: 1080, fill: '#FFFFFF' },
-          { type: 'text', x: 120, y: 100, content: '섹션 소개', fontSize: 32, fontWeight: '700', fill: '#BBBBBB', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.3, editable: true },
-          { type: 'text', x: 120, y: 152, content: '적용된 쿠폰은 \n어디에 노출되나요?', fontSize: 90, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.9, lineHeight: 1.3, editable: true },
-          { type: 'image', x: 120, y: 991, width: 118, height: 20, url: 'assets/icons/yeogi-logo.svg' },
-          { type: 'text', x: 260, y: 990, content: '2026 © GC Company Corp. All rights reserved.', fontSize: 20, fontWeight: '500', fill: '#BBBBBB', fontFamily: 'Pretendard', letterSpacing: -0.2, lineHeight: 1.4 },
-          { type: 'text', x: 1680, y: 990, content: 'P1', fontSize: 20, fontWeight: '500', fill: '#999999', fontFamily: 'Pretendard', letterSpacing: -0.2, lineHeight: 1.4, editable: true, textAlign: 'right', width: 120 }
-        ]
-      },
-      section02: {
-        id: 'section02',
-        name: 'Type 02',
-        category: 'Section Cover',
-        penId: 'iBM3X',
-        elements: [
-          { type: 'rect', x: 0, y: 0, width: 1920, height: 1080, fill: '#FFFFFF' },
-          { type: 'text', x: 434, y: 400, content: '섹션 소개', fontSize: 32, fontWeight: '700', fill: '#BBBBBB', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.3, textAlign: 'center', editable: true },
-          { type: 'text', x: 434, y: 452, content: '어떻게 예약하나요?', fontSize: 90, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.9, lineHeight: 1.3, textAlign: 'center', width: 1052, editable: true },
-          { type: 'image', x: 120, y: 991, width: 118, height: 20, url: 'assets/icons/yeogi-logo.svg' },
-          { type: 'text', x: 260, y: 990, content: '2026 © GC Company Corp. All rights reserved.', fontSize: 20, fontWeight: '500', fill: '#BBBBBB', fontFamily: 'Pretendard', letterSpacing: -0.2, lineHeight: 1.4 },
-          { type: 'text', x: 1680, y: 990, content: 'P1', fontSize: 20, fontWeight: '500', fill: '#999999', fontFamily: 'Pretendard', letterSpacing: -0.2, lineHeight: 1.4, editable: true, textAlign: 'right', width: 120 }
-        ]
-      },
-      section03: {
-        id: 'section03',
-        name: 'Type 03',
-        category: 'Section Cover',
-        penId: 'wY8Zs',
-        elements: [
-          { type: 'rect', x: 0, y: 0, width: 1920, height: 1080, fill: '#333333' },
-          { type: 'text', x: 933, y: 283, content: '1', fontSize: 32, fontWeight: '700', fill: '#000000', fontFamily: 'Pretendard', editable: true },
-          { type: 'text', x: 1021, y: 283, content: '사용자 경험 개선', fontSize: 48, fontWeight: '700', fill: '#FFFFFF', fontFamily: 'Pretendard', letterSpacing: -0.48, lineHeight: 1.3, editable: true },
-          { type: 'text', x: 933, y: 395, content: '2', fontSize: 32, fontWeight: '700', fill: '#000000', fontFamily: 'Pretendard', opacity: 0.3, editable: true },
-          { type: 'text', x: 1021, y: 395, content: '데이터 분석과 인사이트', fontSize: 48, fontWeight: '700', fill: '#FFFFFF', fontFamily: 'Pretendard', letterSpacing: -0.48, lineHeight: 1.3, opacity: 0.3, editable: true },
-          { type: 'text', x: 933, y: 507, content: '3', fontSize: 32, fontWeight: '700', fill: '#000000', fontFamily: 'Pretendard', opacity: 0.3, editable: true },
-          { type: 'text', x: 1021, y: 507, content: '맞춤형 솔루션 제공', fontSize: 48, fontWeight: '700', fill: '#FFFFFF', fontFamily: 'Pretendard', letterSpacing: -0.48, lineHeight: 1.3, opacity: 0.3, editable: true },
-          { type: 'text', x: 933, y: 619, content: '4', fontSize: 32, fontWeight: '700', fill: '#000000', fontFamily: 'Pretendard', opacity: 0.3, editable: true },
-          { type: 'text', x: 1021, y: 619, content: '효율적인 워크플로우', fontSize: 48, fontWeight: '700', fill: '#FFFFFF', fontFamily: 'Pretendard', letterSpacing: -0.48, lineHeight: 1.3, opacity: 0.3, editable: true },
-          { type: 'text', x: 933, y: 731, content: '5', fontSize: 32, fontWeight: '700', fill: '#000000', fontFamily: 'Pretendard', opacity: 0.3, editable: true },
-          { type: 'text', x: 1021, y: 731, content: '실시간 성과 모니터링', fontSize: 48, fontWeight: '700', fill: '#FFFFFF', fontFamily: 'Pretendard', letterSpacing: -0.48, lineHeight: 1.3, opacity: 0.3, editable: true },
-          { type: 'image', x: 120, y: 991, width: 118, height: 20, url: 'assets/icons/yeogi-logo.svg' },
-          { type: 'text', x: 260, y: 990, content: '2026 © GC Company Corp. All rights reserved.', fontSize: 20, fontWeight: '500', fill: '#BBBBBB', fontFamily: 'Pretendard', letterSpacing: -0.2, lineHeight: 1.4 },
-          { type: 'text', x: 1680, y: 990, content: 'P1', fontSize: 20, fontWeight: '500', fill: '#999999', fontFamily: 'Pretendard', letterSpacing: -0.2, lineHeight: 1.4, editable: true, textAlign: 'right', width: 120 }
-        ]
-      },
-
-      // Index Templates (2개)
-      index01: {
-        id: 'index01',
-        name: 'Type 01',
-        category: 'Index',
-        penId: 'HvKwz',
-        elements: [
-          { type: 'rect', x: 0, y: 0, width: 1920, height: 1080, fill: '#F7F7F7' },
-          { type: 'text', x: 120, y: 100, content: '목차', fontSize: 90, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.9, lineHeight: 1.3, editable: true },
-          // Item 01 (y:384)
-          { type: 'text', x: 800, y: 384, content: '01', fontSize: 32, fontWeight: '700', fill: '#666666', fontFamily: 'Pretendard', letterSpacing: -0.32, editable: true },
-          { type: 'text', x: 868, y: 384, content: '서비스 소개', fontSize: 32, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.3, editable: true },
-          { type: 'text', x: 1680, y: 384, content: 'P3', fontSize: 32, fontWeight: '500', fill: '#BBBBBB', fontFamily: 'Pretendard', letterSpacing: -0.32, textAlign: 'right', width: 120, editable: true },
-          // Item 02 (y:468)
-          { type: 'text', x: 800, y: 468, content: '02', fontSize: 32, fontWeight: '700', fill: '#666666', fontFamily: 'Pretendard', letterSpacing: -0.32, editable: true },
-          { type: 'text', x: 868, y: 468, content: '주요 기능', fontSize: 32, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.3, editable: true },
-          { type: 'text', x: 1680, y: 468, content: 'P8', fontSize: 32, fontWeight: '500', fill: '#BBBBBB', fontFamily: 'Pretendard', letterSpacing: -0.32, textAlign: 'right', width: 120, editable: true },
-          // Item 03 (y:552)
-          { type: 'text', x: 800, y: 552, content: '03', fontSize: 32, fontWeight: '700', fill: '#666666', fontFamily: 'Pretendard', letterSpacing: -0.32, editable: true },
-          { type: 'text', x: 868, y: 552, content: '이용 요금 및 절차', fontSize: 32, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.3, editable: true },
-          { type: 'text', x: 1680, y: 552, content: 'P14', fontSize: 32, fontWeight: '500', fill: '#BBBBBB', fontFamily: 'Pretendard', letterSpacing: -0.32, textAlign: 'right', width: 120, editable: true },
-          // Item 04 (y:636)
-          { type: 'text', x: 800, y: 636, content: '04', fontSize: 32, fontWeight: '700', fill: '#666666', fontFamily: 'Pretendard', letterSpacing: -0.32, editable: true },
-          { type: 'text', x: 868, y: 636, content: '자주 묻는 질문', fontSize: 32, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.3, editable: true },
-          { type: 'text', x: 1680, y: 636, content: 'P21', fontSize: 32, fontWeight: '500', fill: '#BBBBBB', fontFamily: 'Pretendard', letterSpacing: -0.32, textAlign: 'right', width: 120, editable: true },
-          // Item 05 (y:720)
-          { type: 'text', x: 800, y: 720, content: '05', fontSize: 32, fontWeight: '700', fill: '#666666', fontFamily: 'Pretendard', letterSpacing: -0.32, editable: true },
-          { type: 'text', x: 868, y: 720, content: '추가 서비스', fontSize: 32, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.3, editable: true },
-          { type: 'text', x: 1680, y: 720, content: 'P25', fontSize: 32, fontWeight: '500', fill: '#BBBBBB', fontFamily: 'Pretendard', letterSpacing: -0.32, textAlign: 'right', width: 120, editable: true },
-          // Item 06 (y:804)
-          { type: 'text', x: 800, y: 804, content: '06', fontSize: 32, fontWeight: '700', fill: '#666666', fontFamily: 'Pretendard', letterSpacing: -0.32, editable: true },
-          { type: 'text', x: 868, y: 804, content: '고객 후기', fontSize: 32, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.3, editable: true },
-          { type: 'text', x: 1680, y: 804, content: 'P30', fontSize: 32, fontWeight: '500', fill: '#BBBBBB', fontFamily: 'Pretendard', letterSpacing: -0.32, textAlign: 'right', width: 120, editable: true },
-          // Item 07 (y:888)
-          { type: 'text', x: 800, y: 888, content: '07', fontSize: 32, fontWeight: '700', fill: '#666666', fontFamily: 'Pretendard', letterSpacing: -0.32, editable: true },
-          { type: 'text', x: 868, y: 888, content: '문의하기', fontSize: 32, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.3, editable: true },
-          { type: 'text', x: 1680, y: 888, content: 'P35', fontSize: 32, fontWeight: '500', fill: '#BBBBBB', fontFamily: 'Pretendard', letterSpacing: -0.32, textAlign: 'right', width: 120, editable: true },
-          // Footer
-          { type: 'image', x: 120, y: 991, width: 118, height: 20, url: 'assets/icons/yeogi-logo.svg' },
-          { type: 'text', x: 260, y: 990, content: '2026 © GC Company Corp. All rights reserved.', fontSize: 20, fontWeight: '500', fill: '#BBBBBB', fontFamily: 'Pretendard', letterSpacing: -0.2, lineHeight: 1.4 },
-          { type: 'text', x: 1680, y: 990, content: 'P1', fontSize: 20, fontWeight: '500', fill: '#999999', fontFamily: 'Pretendard', letterSpacing: -0.2, lineHeight: 1.4, editable: true, textAlign: 'right', width: 120 }
-        ]
-      },
-      index02: {
-        id: 'index02',
-        name: 'Type 02',
-        category: 'Index',
-        penId: '2HaSQ',
-        elements: [
-          { type: 'rect', x: 0, y: 0, width: 1920, height: 1080, fill: '#F7F7F7' },
-          { type: 'text', x: 120, y: 100, content: '목차', fontSize: 90, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.9, lineHeight: 1.3, editable: true },
-
-          // Section 1: 01. 지면 광고 (y:210)
-          { type: 'text', x: 960, y: 210, content: '01. 지면 광고', fontSize: 32, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.3, width: 360, editable: true, className: 'index02-section-title' },
-          { type: 'text', x: 1344, y: 210, content: '광고 노출 지면', fontSize: 32, fontWeight: '700', fill: '#666666', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.5, editable: true, className: 'index02-subtitle' },
-          { type: 'text', x: 1344, y: 272, content: '상품 개요', fontSize: 32, fontWeight: '700', fill: '#666666', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.5, editable: true, className: 'index02-subtitle' },
-          { type: 'text', x: 1344, y: 334, content: '상품 세부 소개', fontSize: 32, fontWeight: '700', fill: '#666666', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.5, editable: true, className: 'index02-subtitle' },
-          { type: 'text', x: 1344, y: 396, content: '광고 효과 분석', fontSize: 32, fontWeight: '700', fill: '#666666', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.5, editable: true, className: 'index02-subtitle' },
-
-          // Section 2: 02. 부속 상품 (노출형) (y:516)
-          { type: 'text', x: 960, y: 516, content: '02. 부속 상품 (노출형)', fontSize: 32, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.3, width: 360, editable: true, className: 'index02-section-title' },
-          { type: 'text', x: 1344, y: 516, content: '슈퍼셀렉트 퍼스트', fontSize: 32, fontWeight: '700', fill: '#666666', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.5, editable: true, className: 'index02-subtitle' },
-          { type: 'text', x: 1344, y: 578, content: '기획전 (숙박 / 대실)', fontSize: 32, fontWeight: '700', fill: '#666666', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.5, editable: true, className: 'index02-subtitle' },
-          { type: 'text', x: 1344, y: 640, content: '검색 · 주변 광고', fontSize: 32, fontWeight: '700', fill: '#666666', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.5, editable: true, className: 'index02-subtitle' },
-          { type: 'text', x: 1344, y: 702, content: '프리미엄 배너 광고', fontSize: 32, fontWeight: '700', fill: '#666666', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.5, editable: true, className: 'index02-subtitle' },
-
-          // Section 3: 03. 부속 상품 (할인형) (y:822)
-          { type: 'text', x: 960, y: 822, content: '03. 부속 상품 (할인형)', fontSize: 32, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.3, width: 360, editable: true, className: 'index02-section-title' },
-          { type: 'text', x: 1344, y: 822, content: '플러스 쿠폰', fontSize: 32, fontWeight: '700', fill: '#666666', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.5, editable: true, className: 'index02-subtitle' },
-          { type: 'text', x: 1344, y: 884, content: '부스트 쿠폰', fontSize: 32, fontWeight: '700', fill: '#666666', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.5, editable: true, className: 'index02-subtitle' },
-          { type: 'text', x: 1344, y: 946, content: '선불형 쿠폰', fontSize: 32, fontWeight: '700', fill: '#666666', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.5, editable: true, className: 'index02-subtitle' },
-          { type: 'text', x: 1344, y: 1008, content: '후불형 쿠폰', fontSize: 32, fontWeight: '700', fill: '#666666', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.5, editable: true, className: 'index02-subtitle' },
-
-          // Footer
-          { type: 'image', x: 120, y: 991, width: 118, height: 20, url: 'assets/icons/yeogi-logo.svg' },
-          { type: 'text', x: 260, y: 990, content: '2026 © GC Company Corp. All rights reserved.', fontSize: 20, fontWeight: '500', fill: '#BBBBBB', fontFamily: 'Pretendard', letterSpacing: -0.2, lineHeight: 1.4 },
-          { type: 'text', x: 1680, y: 990, content: 'P1', fontSize: 20, fontWeight: '500', fill: '#999999', fontFamily: 'Pretendard', letterSpacing: -0.2, lineHeight: 1.4, editable: true, textAlign: 'right', width: 120 }
-        ],
-        dynamicSections: true
-      },
-
-      // Final Cover Templates (3개)
-      finalcover01: {
-        id: 'finalcover01',
-        name: 'Type 01',
-        category: 'Final Cover',
-        penId: 'roD4k',
-        elements: [
-          { type: 'rect', x: 0, y: 0, width: 1920, height: 1080, fill: '#FFFFFF' },
-          { type: 'image', x: 683, y: 450, width: 554, height: 94, url: 'assets/icons/yeogi-logo.svg' },
-          { type: 'text', x: 360, y: 912, content: '최대 1줄 이내로 작성하는 것을 권장합니다.', fontSize: 48, fontWeight: '700', fill: '#BBBBBB', fontFamily: 'Pretendard', letterSpacing: -0.48, lineHeight: 1.3, width: 1200, textAlign: 'center', editable: true, maxLines: 1 }
-        ]
-      },
-      finalcover02: {
-        id: 'finalcover02',
-        name: 'Type 02',
-        category: 'Final Cover',
-        penId: 'OshxU',
-        elements: [
-          { type: 'rect', x: 0, y: 0, width: 1920, height: 1080, fill: '#FFFFFF' },
-          { type: 'rect', x: 820, y: 0, width: 1100, height: 1080, fill: '#F7F7F7' },
-          { type: 'text', x: 120, y: 177, content: '메인 타이틀을 입력하세요\n최대 3줄까지 입력 가능합니다.', fontSize: 90, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.9, lineHeight: 1.3, width: 1200, editable: true, maxLines: 3 },
-          { type: 'image', x: 120, y: 940, width: 216.89, height: 36.83, url: 'assets/icons/yeogi-logo.svg' },
-          { type: 'text', x: 120, y: 100, content: '카테고리 입력', fontSize: 48, fontWeight: '700', fill: '#BBBBBB', fontFamily: 'Pretendard', letterSpacing: -0.48, lineHeight: 1.3, editable: true, maxLines: 1 }
-        ]
-      },
-      finalcover03: {
-        id: 'finalcover03',
-        name: 'Type 03',
-        category: 'Final Cover',
-        penId: 'NQa5K',
-        elements: [
-          { type: 'rect', x: 0, y: 0, width: 1920, height: 1080, fill: '#f7f7f7' },
-          { type: 'text', x: 660, y: 395, content: '메인 타이틀 최대 1줄', fontSize: 90, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.9, lineHeight: 1.3, textAlign: 'center', editable: true, maxLines: 1, width: 1200 },
-          { type: 'text', x: 434, y: 537, content: '최대 1줄 이내로 작성하는 것을 권장합니다.', fontSize: 48, fontWeight: '500', fill: '#666666', fontFamily: 'Pretendard', letterSpacing: -0.48, lineHeight: 1.5, width: 1200, textAlign: 'center', editable: true, maxLines: 1 },
-          { type: 'image', x: 852, y: 940, width: 216.89, height: 36.83, url: 'assets/icons/yeogi-logo.svg' }
-        ]
-      },
-
-      // Contact Template (1개)
-      contact01: {
-        id: 'contact01',
-        name: 'Type 01',
-        category: 'Contact',
-        penId: 'ceGVD',
-        elements: [
-          { type: 'rect', x: 0, y: 0, width: 1920, height: 1080, fill: '#FFFFFF' },
-          { type: 'text', x: 120, y: 510, content: '여기어때 파트너센터 문의', fontSize: 48, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.48, lineHeight: 1.3, editable: true },
-          { type: 'text', x: 120, y: 610, content: '대표번호', fontSize: 32, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.5, editable: true },
-          { type: 'text', x: 120, y: 654, content: '02-1234-5678', fontSize: 32, fontWeight: '500', fill: '#666666', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.5, editable: true },
-          { type: 'text', x: 120, y: 730, content: '이메일', fontSize: 32, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.5, editable: true },
-          { type: 'text', x: 120, y: 774, content: 'contact@example.com', fontSize: 32, fontWeight: '500', fill: '#666666', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.5, editable: true },
-          { type: 'text', x: 820, y: 610, content: '운영시간', fontSize: 32, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.5, editable: true },
-          { type: 'text', x: 820, y: 654, content: '평일 09:00 - 18:00', fontSize: 32, fontWeight: '500', fill: '#666666', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.5, editable: true },
-          { type: 'text', x: 820, y: 730, content: '주소', fontSize: 32, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.5, editable: true },
-          { type: 'text', x: 820, y: 774, content: '서울특별시 강남구 테헤란로 123', fontSize: 32, fontWeight: '500', fill: '#666666', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.5, editable: true },
-          { type: 'image', x: 120, y: 991, width: 118, height: 20, url: 'assets/icons/yeogi-logo.svg' },
-          { type: 'text', x: 260, y: 990, content: '2026 © GC Company Corp. All rights reserved.', fontSize: 20, fontWeight: '500', fill: '#BBBBBB', fontFamily: 'Pretendard', letterSpacing: -0.2, lineHeight: 1.4 },
-          { type: 'text', x: 1680, y: 990, content: 'P1', fontSize: 20, fontWeight: '500', fill: '#999999', fontFamily: 'Pretendard', letterSpacing: -0.2, lineHeight: 1.4, editable: true, textAlign: 'right', width: 120 }
-        ]
-      }
+  const duplicateSlide = () => {
+    const currentSlide = slides[currentSlideIndex];
+    const duplicatedSlide = {
+      id: `s${Date.now()}`,
+      templateId: currentSlide.templateId,
+      data: { ...currentSlide.data }
     };
+    const newSlides = [...slides];
+    newSlides.splice(currentSlideIndex + 1, 0, duplicatedSlide);
+    setSlides(newSlides);
+    setCurrentSlideIndex(currentSlideIndex + 1);
+    showStatus('슬라이드가 복제되었습니다! 📋');
+  };
 
-    // ==================== Main Cover Templates (3개) ====================
-    const MAIN_COVER_TEMPLATE = {
-      maincover03: {
-        id: 'maincover03',
-        name: 'Type 01',
-        category: 'Main Cover',
-        penId: 'XtSqT',
-        elements: [
-          { type: 'rect', x: 0, y: 0, width: 1920, height: 1080, fill: '#f7f7f7' },
-          { type: 'text', x: 660, y: 395, content: '메인 타이틀 최대 1줄', fontSize: 90, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.9, lineHeight: 1.3, textAlign: 'center', editable: true, maxLines: 1, width: 1200 },
-          { type: 'text', x: 434, y: 537, content: '최대 1줄 이내로 작성하는 것을 권장합니다.', fontSize: 48, fontWeight: '500', fill: '#666666', fontFamily: 'Pretendard', letterSpacing: -0.48, lineHeight: 1.5, width: 1200, textAlign: 'center', editable: true, maxLines: 1 },
-          { type: 'image', x: 852, y: 940, width: 216.89, height: 36.83, url: 'assets/icons/yeogi-logo.svg' }
-        ]
-      },
-      maincover02: {
-        id: 'maincover02',
-        name: 'Type 02',
-        category: 'Main Cover',
-        penId: '6UkwD',
-        elements: [
-          { type: 'rect', x: 0, y: 0, width: 1920, height: 1080, fill: '#FFFFFF' },
-          { type: 'rect', x: 820, y: 0, width: 1100, height: 1080, fill: '#F7F7F7' },
-          { type: 'text', x: 120, y: 177, content: '메인 타이틀을 입력하세요\n최대 3줄까지 입력 가능합니다.', fontSize: 90, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.9, lineHeight: 1.3, width: 1200, editable: true, maxLines: 3 },
-          { type: 'image', x: 120, y: 940, width: 216.89, height: 36.83, url: 'assets/icons/yeogi-logo.svg' },
-          { type: 'text', x: 120, y: 100, content: '카테고리 입력', fontSize: 48, fontWeight: '700', fill: '#BBBBBB', fontFamily: 'Pretendard', letterSpacing: -0.48, lineHeight: 1.3, editable: true, maxLines: 1 }
-        ]
-      },
-      maincover01: {
-        id: 'maincover01',
-        name: 'Type 03',
-        category: 'Main Cover',
-        penId: '0eUOG',
-        elements: [
-          { type: 'rect', x: 0, y: 0, width: 1920, height: 1080, fill: '#FFFFFF' },
-          { type: 'text', x: 120, y: 319, content: '이곳에 프로젝트의 핵심 가치나 요약 설명을 작성합니다.\n최대 2줄 이내로 작성하는 것을 권장합니다.', fontSize: 48, fontWeight: '500', fill: '#666666', fontFamily: 'Pretendard', letterSpacing: -0.48, lineHeight: 1.5, width: 1200, editable: true, maxLines: 2 },
-          { type: 'rect', x: 820, y: 0, width: 1100, height: 1080, fill: '#F7F7F7' },
-          { type: 'text', x: 120, y: 177, content: '메인 타이틀을 입력하세요\n최대 2줄까지 입력 가능합니다.', fontSize: 90, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.9, lineHeight: 1.3, width: 1200, editable: true, maxLines: 2 },
-          { type: 'text', x: 120, y: 100, content: '카테고리 입력', fontSize: 48, fontWeight: '700', fill: '#BBBBBB', fontFamily: 'Pretendard', letterSpacing: -0.48, lineHeight: 1.3, editable: true, maxLines: 1 },
-          { type: 'image', x: 120, y: 940, width: 216.89, height: 36.83, url: 'assets/icons/yeogi-logo.svg' }
-        ]
+  // 드래그 앤 드롭 핸들러
+  const handleDragStart = (e, index) => {
+    setDraggedIndex(index);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDragOver = (e, index) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if (draggedIndex !== null && draggedIndex !== index) {
+      setDropTargetIndex(index);
+    }
+  };
+
+  const handleDragLeave = () => {
+    setDropTargetIndex(null);
+  };
+
+  const handleDrop = (e, dropIndex) => {
+    e.preventDefault();
+    if (draggedIndex === null || draggedIndex === dropIndex) {
+      setDropTargetIndex(null);
+      return;
+    }
+
+    const newSlides = [...slides];
+    const [draggedSlide] = newSlides.splice(draggedIndex, 1);
+    newSlides.splice(dropIndex, 0, draggedSlide);
+
+    setSlides(newSlides);
+    setDraggedIndex(null);
+    setDropTargetIndex(null);
+    showStatus('슬라이드 순서가 변경되었습니다!');
+  };
+
+  const handleDragEnd = () => {
+    setDraggedIndex(null);
+    setDropTargetIndex(null);
+  };
+
+  // PDF 업로드 및 파싱
+  const handlePdfUpload = async (file) => {
+    if (!file || file.type !== 'application/pdf') {
+      showStatus('PDF 파일만 업로드 가능합니다.');
+      return;
+    }
+
+    showStatus('PDF 분석 중... ⏳');
+
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      let extractedText = '';
+
+      for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const textContent = await page.getTextContent();
+        const pageText = textContent.items.map(item => item.str).join(' ');
+        extractedText += pageText + '\n\n';
       }
+
+      // 텍스트 파싱 및 슬라이드 자동 생성
+      parseAndPopulateSlides(extractedText);
+      setShowPdfUpload(false);
+      showStatus('PDF 내용이 슬라이드에 적용되었습니다! ✨');
+    } catch (error) {
+      console.error('PDF 파싱 오류:', error);
+      showStatus('PDF 처리 중 오류가 발생했습니다.');
+    }
+  };
+
+  const parseAndPopulateSlides = (text) => {
+    // 간단한 키워드 매칭으로 슬라이드 자동 채우기
+    const newSlides = [...slides];
+
+    // 회사명, 제목 등 추출
+    const lines = text.split('\n').filter(l => l.trim());
+
+    // Main Cover 업데이트
+    if (newSlides[0] && lines.length > 0) {
+      const mainCoverData = { ...newSlides[0].data };
+      if (lines[0]) mainCoverData['text_2'] = lines[0]; // 제목
+      if (lines[1]) mainCoverData['text_3'] = lines[1]; // 설명
+      newSlides[0] = { ...newSlides[0], data: mainCoverData };
+    }
+
+    setSlides(newSlides);
+  };
+
+  const updateSlideData = (elementId, value) => {
+    const newSlides = [...slides];
+    if (!newSlides[currentSlideIndex].data) newSlides[currentSlideIndex].data = {};
+    newSlides[currentSlideIndex].data[elementId] = value;
+    setSlides(newSlides);
+  };
+
+  const handleImageUpload = (elementId, file) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      updateSlideData(elementId, e.target.result);
+      showStatus('이미지가 업로드되었습니다! 🖼️');
     };
+    reader.readAsDataURL(file);
+  };
 
-    // TEMPLATES에 Main Cover 추가
-    const ALL_TEMPLATES = { ...MAIN_COVER_TEMPLATE, ...TEMPLATES };
+  const exportToPDF = async () => {
+    if (!window.html2canvas || !window.jspdf) {
+      showStatus('라이브러리 로딩 중...');
+      return;
+    }
+    showStatus('PDF 생성 중... ⏳');
+    const pdf = new window.jspdf.jsPDF({ orientation: 'landscape', unit: 'px', format: [1920, 1080] });
+    for (let i = 0; i < slides.length; i++) {
+      setCurrentSlideIndex(i);
+      await new Promise(resolve => setTimeout(resolve, 500));
+      const canvas = await window.html2canvas(slideRef.current, { scale: 2, useCORS: true });
+      const imgData = canvas.toDataURL('image/png');
+      if (i > 0) pdf.addPage();
+      pdf.addImage(imgData, 'PNG', 0, 0, 1920, 1080);
+    }
+    pdf.save('TransformTrack-Presentation.pdf');
+    showStatus('PDF 다운로드 완료! 📥');
+  };
 
-    // ==================== 메인 컴포넌트 ====================
-    function PresentationBuilder() {
-      const [currentTheme, setCurrentTheme] = useState('light');
-      const [scale, setScale] = useState(0.4);
-      const [statusMessage, setStatusMessage] = useState(null);
-      const [draggedIndex, setDraggedIndex] = useState(null);
-      const [dropTargetIndex, setDropTargetIndex] = useState(null);
-      const [showPdfUpload, setShowPdfUpload] = useState(false);
 
-      // localStorage에서 불러오기 또는 초기 슬라이드
-      const [slides, setSlides] = useState(() => {
-        const saved = localStorage.getItem('transformtrack-slides');
-        if (saved) {
-          return JSON.parse(saved);
-        }
-        return [
-          { id: 's1', templateId: 'maincover01', data: {} },
-          { id: 's2', templateId: 'index01', data: {} },
-          { id: 's3', templateId: 'corevalue01', data: {} },
-          { id: 's4', templateId: 'section01', data: {} },
-          { id: 's5', templateId: 'mobile01', data: {} },
-          { id: 's6', templateId: 'pc01', data: {} },
-          { id: 's7', templateId: 'faq01', data: {} },
-          { id: 's8', templateId: 'contact01', data: {} },
-          { id: 's9', templateId: 'finalcover01', data: {} }
-        ];
+  // currentSlideIndex + templateId 저장 (새로고침 시 위치와 Type 복원, data는 초기화)
+  useEffect(() => {
+    localStorage.setItem('transformtrack-currentSlideIndex', currentSlideIndex.toString());
+  }, [currentSlideIndex]);
+
+  useEffect(() => {
+    const typeMap = {};
+    slides.forEach(s => { typeMap[s.id] = s.templateId; });
+    localStorage.setItem('transformtrack-templateIds-v2', JSON.stringify(typeMap));
+  }, [slides]);
+
+  // 현재 슬라이드로 자동 스크롤
+  useEffect(() => {
+    if (thumbnailRefs.current[currentSlideIndex]) {
+      thumbnailRefs.current[currentSlideIndex].scrollIntoView({
+        behavior: 'smooth',
+        block: 'nearest'
       });
-      const [currentSlideIndex, setCurrentSlideIndex] = useState(() => {
-        const savedIndex = localStorage.getItem('transformtrack-currentSlideIndex');
-        return savedIndex ? parseInt(savedIndex, 10) : 0;
-      });
-      const [showTemplateModal, setShowTemplateModal] = useState(false);
-      const [selectedCategory, setSelectedCategory] = useState(null);
-      const [copiedSlide, setCopiedSlide] = useState(null);
+    }
+  }, [currentSlideIndex]);
 
-      const containerRef = useRef(null);
-      const slideRef = useRef(null);
-      const thumbnailRefs = useRef([]);
+  // 키보드 단축키 이벤트 핸들러
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // 입력 필드에서는 단축키 비활성화
+      const isInputFocused = document.activeElement.tagName === 'INPUT' ||
+                             document.activeElement.tagName === 'TEXTAREA' ||
+                             document.activeElement.contentEditable === 'true';
 
-      const themes = {
-        light: { name: '라이트 모드', navBg: 'bg-white', workspaceBg: 'bg-slate-50', slideBg: 'bg-white', textMain: 'text-slate-900', textSub: 'text-slate-500', accent: 'bg-white', uiAccent: 'bg-slate-900', border: 'border-slate-200', tabBg: 'bg-slate-100', activeTabBg: 'bg-white text-slate-900 shadow-sm' },
-        dark: { name: '다크 모드', navBg: 'bg-slate-900', workspaceBg: 'bg-black', slideBg: 'bg-slate-900', textMain: 'text-white', textSub: 'text-slate-400', accent: 'bg-black', uiAccent: 'bg-indigo-500', border: 'border-slate-800', tabBg: 'bg-slate-800', activeTabBg: 'bg-slate-700 text-white' }
-      };
-
-      const theme = themes[currentTheme];
-
-      const showStatus = (msg) => {
-        setStatusMessage(msg);
-        setTimeout(() => setStatusMessage(null), 3000);
-      };
-
-      const handleZoom = (newScale) => {
-        const constrainedScale = Math.max(0.1, Math.min(newScale, 1.5));
-        setScale(constrainedScale);
-      };
-
-      const addSlide = (templateId) => {
-        const newSlide = { id: `s${Date.now()}`, templateId, data: {} };
-        const newSlides = [...slides];
-        newSlides.splice(currentSlideIndex + 1, 0, newSlide);
-        setSlides(newSlides);
-        setCurrentSlideIndex(currentSlideIndex + 1);
-        setShowTemplateModal(false);
-        setSelectedCategory(null);
-        showStatus('슬라이드가 추가되었습니다! ✨');
-      };
-
-      const replaceCurrentSlide = (templateId) => {
-        const newSlides = [...slides];
-        newSlides[currentSlideIndex] = { ...newSlides[currentSlideIndex], templateId, data: {} };
-        setSlides(newSlides);
-        setSelectedCategory(null);
-      };
-
-      const deleteSlide = () => {
-        if (slides.length <= 1) {
-          showStatus('최소 1개의 슬라이드가 필요합니다.');
-          return;
+      // ESC: 모달 닫기
+      if (e.key === 'Escape') {
+        if (showTemplateModal) {
+          setShowTemplateModal(false);
+          setSelectedCategory(null);
         }
-        const newSlides = slides.filter((_, idx) => idx !== currentSlideIndex);
-        setSlides(newSlides);
-        setCurrentSlideIndex(Math.max(0, currentSlideIndex - 1));
-        showStatus('슬라이드가 삭제되었습니다.');
-      };
-
-      const resetSlide = () => {
-        const newSlides = [...slides];
-        newSlides[currentSlideIndex] = {
-          ...newSlides[currentSlideIndex],
-          data: {}
-        };
-        setSlides(newSlides);
-        showStatus('슬라이드가 초기화되었습니다! 🔄');
-      };
-
-      // 페이지 번호 자동 계산 (Main Cover, Final Cover, Index 제외)
-      const getPageNumber = (slideIndex) => {
-        if (!slides[slideIndex]) return '';
-
-        // Main Cover, Final Cover, Index 개수만 제외하고 순차 카운트
-        let pageNumber = 1;
-        for (let i = 0; i < slideIndex; i++) {
-          const templateId = slides[i].templateId;
-          if (!templateId.startsWith('maincover') && !templateId.startsWith('finalcover') && !templateId.startsWith('index')) {
-            pageNumber++;
-          }
-        }
-
-        // 현재 슬라이드가 Main Cover, Final Cover, Index면 빈 문자열 반환
-        const currentTemplateId = slides[slideIndex].templateId;
-        if (currentTemplateId.startsWith('maincover') || currentTemplateId.startsWith('finalcover') || currentTemplateId.startsWith('index')) {
-          return '';
-        }
-
-        return `P${pageNumber}`;
-      };
-
-      const duplicateSlide = () => {
-        const currentSlide = slides[currentSlideIndex];
-        const duplicatedSlide = {
-          id: `s${Date.now()}`,
-          templateId: currentSlide.templateId,
-          data: { ...currentSlide.data }
-        };
-        const newSlides = [...slides];
-        newSlides.splice(currentSlideIndex + 1, 0, duplicatedSlide);
-        setSlides(newSlides);
-        setCurrentSlideIndex(currentSlideIndex + 1);
-        showStatus('슬라이드가 복제되었습니다! 📋');
-      };
-
-      // 드래그 앤 드롭 핸들러
-      const handleDragStart = (e, index) => {
-        setDraggedIndex(index);
-        e.dataTransfer.effectAllowed = 'move';
-      };
-
-      const handleDragOver = (e, index) => {
-        e.preventDefault();
-        e.dataTransfer.dropEffect = 'move';
-        if (draggedIndex !== null && draggedIndex !== index) {
-          setDropTargetIndex(index);
-        }
-      };
-
-      const handleDragLeave = () => {
-        setDropTargetIndex(null);
-      };
-
-      const handleDrop = (e, dropIndex) => {
-        e.preventDefault();
-        if (draggedIndex === null || draggedIndex === dropIndex) {
-          setDropTargetIndex(null);
-          return;
-        }
-
-        const newSlides = [...slides];
-        const [draggedSlide] = newSlides.splice(draggedIndex, 1);
-        newSlides.splice(dropIndex, 0, draggedSlide);
-
-        setSlides(newSlides);
-        setDraggedIndex(null);
-        setDropTargetIndex(null);
-        showStatus('슬라이드 순서가 변경되었습니다!');
-      };
-
-      const handleDragEnd = () => {
-        setDraggedIndex(null);
-        setDropTargetIndex(null);
-      };
-
-      // PDF 업로드 및 파싱
-      const handlePdfUpload = async (file) => {
-        if (!file || file.type !== 'application/pdf') {
-          showStatus('PDF 파일만 업로드 가능합니다.');
-          return;
-        }
-
-        showStatus('PDF 분석 중... ⏳');
-
-        try {
-          const arrayBuffer = await file.arrayBuffer();
-          const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-          let extractedText = '';
-
-          for (let i = 1; i <= pdf.numPages; i++) {
-            const page = await pdf.getPage(i);
-            const textContent = await page.getTextContent();
-            const pageText = textContent.items.map(item => item.str).join(' ');
-            extractedText += pageText + '\n\n';
-          }
-
-          // 텍스트 파싱 및 슬라이드 자동 생성
-          parseAndPopulateSlides(extractedText);
+        if (showPdfUpload) {
           setShowPdfUpload(false);
-          showStatus('PDF 내용이 슬라이드에 적용되었습니다! ✨');
-        } catch (error) {
-          console.error('PDF 파싱 오류:', error);
-          showStatus('PDF 처리 중 오류가 발생했습니다.');
         }
-      };
+        return;
+      }
 
-      const parseAndPopulateSlides = (text) => {
-        // 간단한 키워드 매칭으로 슬라이드 자동 채우기
-        const newSlides = [...slides];
+      if (isInputFocused) return;
 
-        // 회사명, 제목 등 추출
-        const lines = text.split('\n').filter(l => l.trim());
+      // Cmd/Ctrl + C: 슬라이드 복사
+      if ((e.metaKey || e.ctrlKey) && e.key === 'c') {
+        e.preventDefault();
+        setCopiedSlide(slides[currentSlideIndex]);
+        showStatus('슬라이드가 복사되었습니다! 📋');
+        return;
+      }
 
-        // Main Cover 업데이트
-        if (newSlides[0] && lines.length > 0) {
-          const mainCoverData = { ...newSlides[0].data };
-          if (lines[0]) mainCoverData['text_2'] = lines[0]; // 제목
-          if (lines[1]) mainCoverData['text_3'] = lines[1]; // 설명
-          newSlides[0] = { ...newSlides[0], data: mainCoverData };
-        }
-
-        setSlides(newSlides);
-      };
-
-      const updateSlideData = (elementId, value) => {
-        const newSlides = [...slides];
-        if (!newSlides[currentSlideIndex].data) newSlides[currentSlideIndex].data = {};
-        newSlides[currentSlideIndex].data[elementId] = value;
-        setSlides(newSlides);
-      };
-
-      const handleImageUpload = (elementId, file) => {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          updateSlideData(elementId, e.target.result);
-          showStatus('이미지가 업로드되었습니다! 🖼️');
-        };
-        reader.readAsDataURL(file);
-      };
-
-      const exportToPDF = async () => {
-        if (!window.html2canvas || !window.jspdf) {
-          showStatus('라이브러리 로딩 중...');
-          return;
-        }
-        showStatus('PDF 생성 중... ⏳');
-        const pdf = new window.jspdf.jsPDF({ orientation: 'landscape', unit: 'px', format: [1920, 1080] });
-        for (let i = 0; i < slides.length; i++) {
-          setCurrentSlideIndex(i);
-          await new Promise(resolve => setTimeout(resolve, 500));
-          const canvas = await window.html2canvas(slideRef.current, { scale: 2, useCORS: true });
-          const imgData = canvas.toDataURL('image/png');
-          if (i > 0) pdf.addPage();
-          pdf.addImage(imgData, 'PNG', 0, 0, 1920, 1080);
-        }
-        pdf.save('TransformTrack-Presentation.pdf');
-        showStatus('PDF 다운로드 완료! 📥');
-      };
-
-      // localStorage에 slides 저장
-      useEffect(() => {
-        localStorage.setItem('transformtrack-slides', JSON.stringify(slides));
-      }, [slides]);
-
-      // localStorage에 currentSlideIndex 저장
-      useEffect(() => {
-        localStorage.setItem('transformtrack-currentSlideIndex', currentSlideIndex.toString());
-      }, [currentSlideIndex]);
-
-      // 현재 슬라이드로 자동 스크롤
-      useEffect(() => {
-        if (thumbnailRefs.current[currentSlideIndex]) {
-          thumbnailRefs.current[currentSlideIndex].scrollIntoView({
-            behavior: 'smooth',
-            block: 'nearest'
-          });
-        }
-      }, [currentSlideIndex]);
-
-      // 키보드 단축키 이벤트 핸들러
-      useEffect(() => {
-        const handleKeyDown = (e) => {
-          // 입력 필드에서는 단축키 비활성화
-          const isInputFocused = document.activeElement.tagName === 'INPUT' ||
-                                 document.activeElement.tagName === 'TEXTAREA' ||
-                                 document.activeElement.contentEditable === 'true';
-
-          // ESC: 모달 닫기
-          if (e.key === 'Escape') {
-            if (showTemplateModal) {
-              setShowTemplateModal(false);
-              setSelectedCategory(null);
-            }
-            if (showPdfUpload) {
-              setShowPdfUpload(false);
-            }
-            return;
-          }
-
-          if (isInputFocused) return;
-
-          // Cmd/Ctrl + C: 슬라이드 복사
-          if ((e.metaKey || e.ctrlKey) && e.key === 'c') {
-            e.preventDefault();
-            setCopiedSlide(slides[currentSlideIndex]);
-            showStatus('슬라이드가 복사되었습니다! 📋');
-            return;
-          }
-
-          // Cmd/Ctrl + V: 슬라이드 붙여넣기
-          if ((e.metaKey || e.ctrlKey) && e.key === 'v') {
-            e.preventDefault();
-            if (copiedSlide) {
-              const newSlide = {
-                id: `s${Date.now()}`,
-                templateId: copiedSlide.templateId,
-                data: JSON.parse(JSON.stringify(copiedSlide.data || {}))
-              };
-              const newSlides = [...slides];
-              newSlides.splice(currentSlideIndex + 1, 0, newSlide);
-              setSlides(newSlides);
-              setCurrentSlideIndex(currentSlideIndex + 1);
-              showStatus('슬라이드가 붙여넣기 되었습니다! ✨');
-            } else {
-              showStatus('복사된 슬라이드가 없습니다.');
-            }
-            return;
-          }
-
-          // Cmd/Ctrl + D: 슬라이드 복제
-          if ((e.metaKey || e.ctrlKey) && e.key === 'd') {
-            e.preventDefault();
-            duplicateSlide();
-            return;
-          }
-
-          // ArrowUp: 이전 슬라이드
-          if (e.key === 'ArrowUp') {
-            e.preventDefault();
-            if (currentSlideIndex > 0) {
-              setCurrentSlideIndex(currentSlideIndex - 1);
-            }
-            return;
-          }
-
-          // ArrowDown: 다음 슬라이드
-          if (e.key === 'ArrowDown') {
-            e.preventDefault();
-            if (currentSlideIndex < slides.length - 1) {
-              setCurrentSlideIndex(currentSlideIndex + 1);
-            }
-            return;
-          }
-        };
-
-        window.addEventListener('keydown', handleKeyDown);
-        return () => window.removeEventListener('keydown', handleKeyDown);
-      }, [currentSlideIndex, slides, copiedSlide, showTemplateModal, showPdfUpload]);
-
-      useEffect(() => {
-        const handleResize = () => {
-          if (containerRef.current) {
-            const { clientWidth, clientHeight } = containerRef.current;
-            const scaleW = (clientWidth - 20) / 1920;
-            const scaleH = (clientHeight - 130) / 1080;
-            setScale(Math.min(scaleW, scaleH, 1.4));
-          }
-        };
-        handleResize();
-        window.addEventListener('resize', handleResize);
-        return () => window.removeEventListener('resize', handleResize);
-      }, []);
-
-      const currentSlide = slides[currentSlideIndex];
-      const currentTemplate = currentSlide ? ALL_TEMPLATES[currentSlide.templateId] : null;
-
-      const templatesByCategory = Object.values(ALL_TEMPLATES).reduce((acc, template) => {
-        if (!acc[template.category]) acc[template.category] = [];
-        acc[template.category].push(template);
-        return acc;
-      }, {});
-
-      // 카테고리 순서 정의
-      const categoryOrder = ['Main Cover', 'Index', 'Core Value', 'Section', 'Mobile', 'PC', 'FAQ', 'Contact', 'Final Cover'];
-      const orderedCategories = categoryOrder.filter(cat => templatesByCategory[cat]);
-
-      // 현재 슬라이드의 카테고리 템플릿들만 가져오기
-      const currentCategory = currentTemplate?.category;
-      const currentCategoryTemplates = currentCategory ? templatesByCategory[currentCategory] : [];
-
-      return (
-        <div className={`h-screen flex flex-col overflow-hidden font-sans`}>
-          <nav className={`${theme.navBg} border-b ${theme.border} px-6 flex items-center justify-between z-50 shadow-sm py-3`}>
-            <div className="flex items-center gap-3">
-              <span className={`font-bold ${theme.textMain} tracking-tight text-base`}>TransformTrack 소개서 빌더</span>
-              <div className={`hidden sm:flex px-2 py-0.5 rounded text-[10px] font-bold border ${theme.border} ${theme.textSub}`}>1920 x 1080</div>
-              <button onClick={() => setShowPdfUpload(true)} className="px-3 py-1.5 text-xs font-bold bg-emerald-100 text-emerald-700 hover:bg-emerald-200 rounded-lg">📄 PDF 업로드</button>
-            </div>
-
-            {/* 현재 카테고리의 템플릿 Type 선택 */}
-            <div className="flex-1 flex items-center justify-center gap-3 overflow-x-auto no-scrollbar">
-              {currentCategory && (
-                <>
-                  <span className="text-sm font-bold text-slate-700 mr-1">{currentCategory}:</span>
-                  {currentCategoryTemplates.map((template) => {
-                    const isCurrentTemplate = currentSlide?.templateId === template.id;
-                    return (
-                      <button
-                        key={template.id}
-                        onClick={() => replaceCurrentSlide(template.id)}
-                        className={`px-4 py-2 text-sm font-bold rounded-lg whitespace-nowrap ${
-                          isCurrentTemplate
-                            ? 'bg-indigo-600 text-white shadow-md'
-                            : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                        }`}
-                      >
-                        {template.name}
-                      </button>
-                    );
-                  })}
-                </>
-              )}
-            </div>
-
-            <div className="flex items-center gap-4 border-l pl-4 border-slate-200 ml-2">
-              <div className="flex gap-2">
-                {Object.keys(themes).map((t) => (
-                  <button key={t} onClick={() => setCurrentTheme(t)} className={`w-6 h-6 rounded-full border ${currentTheme === t ? 'ring-2 ring-indigo-500 ring-offset-2' : 'border-slate-300'} ${themes[t].accent}`} />
-                ))}
-              </div>
-            </div>
-          </nav>
-
-          <main className="flex-1 flex overflow-hidden">
-            <div className="w-64 bg-white border-r border-slate-200 flex flex-col flex-shrink-0">
-              <div className="flex items-center justify-between p-4 pb-3">
-                <h3 className="font-bold text-slate-700 text-sm">슬라이드</h3>
-                <button onClick={() => setShowTemplateModal(true)} className="px-3 py-1.5 text-xs font-bold bg-indigo-100 text-indigo-600 hover:bg-indigo-200 rounded-lg transition">+ 추가</button>
-              </div>
-              <div className="flex-1 overflow-y-auto no-scrollbar px-4 pt-2 pb-4 space-y-3">
-                {slides.map((slide, idx) => {
-                  const template = ALL_TEMPLATES[slide.templateId];
-                  const isDragging = draggedIndex === idx;
-                  const isDropTarget = dropTargetIndex === idx;
-                  const showTopIndicator = isDropTarget && draggedIndex !== null && draggedIndex > idx;
-                  const showBottomIndicator = isDropTarget && draggedIndex !== null && draggedIndex < idx;
-
-                  return (
-                    <div
-                      key={slide.id}
-                      ref={(el) => (thumbnailRefs.current[idx] = el)}
-                      draggable
-                      onDragStart={(e) => handleDragStart(e, idx)}
-                      onDragOver={(e) => handleDragOver(e, idx)}
-                      onDragLeave={handleDragLeave}
-                      onDrop={(e) => handleDrop(e, idx)}
-                      onDragEnd={handleDragEnd}
-                      onClick={() => setCurrentSlideIndex(idx)}
-                      className={`thumbnail p-3 border-2 rounded-lg cursor-grab transition-all ${
-                        idx === currentSlideIndex ? 'active' : 'border-slate-200'
-                      } ${isDragging ? 'dragging' : ''} ${
-                        showTopIndicator ? 'drop-indicator-top' : ''
-                      } ${showBottomIndicator ? 'drop-indicator-bottom' : ''}`}
-                    >
-                      <TemplateThumbnail template={template} data={slide.data} slideIndex={idx} slides={slides} />
-                      <div className="text-xs font-semibold text-slate-600 text-center truncate mt-2">{idx + 1}. {template?.category}</div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div ref={containerRef} className={`flex-1 ${theme.workspaceBg} flex flex-col items-center justify-center relative overflow-hidden p-1 pb-20`}>
-              <div ref={slideRef} className={`${theme.slideBg} shadow-2xl relative overflow-hidden border ${theme.border}`} style={{ width: '1920px', height: '1080px', transform: `scale(${scale})`, flexShrink: 0, transformOrigin: 'center center' }}>
-                {currentTemplate && <SlideCanvas template={currentTemplate} data={currentSlide.data} onUpdate={updateSlideData} onImageUpload={handleImageUpload} currentSlideIndex={currentSlideIndex} slides={slides} />}
-              </div>
-
-              <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-white/95 backdrop-blur-md p-2 rounded-2xl shadow-[0_10px_50px_rgba(0,0,0,0.1)] border border-white/50 z-[100] w-max max-w-[98vw] overflow-x-auto no-scrollbar">
-                <div className="flex items-center gap-2.5 px-3">
-                  <button onClick={() => handleZoom(scale - 0.05)} className="p-1 hover:bg-slate-100 rounded text-slate-500 flex items-center justify-center text-lg font-bold">−</button>
-                  <div className="flex items-center gap-2 min-w-[140px]">
-                    <input type="range" min="0.1" max="1.5" step="0.05" value={scale} onChange={(e) => handleZoom(parseFloat(e.target.value))} className="flex-1 accent-indigo-600 h-1 cursor-pointer appearance-none bg-slate-200 rounded-full" />
-                    <span className="text-[10px] font-black text-slate-500 tabular-nums w-8 text-right">{Math.round(scale * 100)}%</span>
-                  </div>
-                  <button onClick={() => handleZoom(scale + 0.05)} className="p-1 hover:bg-slate-100 rounded text-slate-500 flex items-center justify-center text-lg font-bold">+</button>
-                </div>
-                <div className="w-px h-6 bg-slate-200 mx-1" />
-                <button onClick={resetSlide} className="px-3 py-2 hover:bg-blue-100 text-blue-600 rounded-lg font-bold text-sm">새로고침</button>
-                <div className="w-px h-6 bg-slate-200 mx-1" />
-                <button onClick={deleteSlide} className="px-3 py-2 hover:bg-red-100 text-red-600 rounded-lg font-bold text-sm">삭제</button>
-                <div className="w-px h-6 bg-slate-200 mx-1" />
-                <button onClick={exportToPDF} className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold shadow-md shadow-emerald-100"><span className="text-[11px] whitespace-nowrap">📥 PDF</span></button>
-              </div>
-            </div>
-          </main>
-
-          {showTemplateModal && (
-            <div className="absolute inset-0 bg-slate-900/30 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
-              <div className="bg-white rounded-3xl shadow-2xl w-full max-w-4xl overflow-hidden">
-                <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-indigo-50/30">
-                  <h3 className="font-bold text-sm uppercase tracking-widest text-indigo-600">템플릿 선택 (총 23개)</h3>
-                  <button onClick={() => setShowTemplateModal(false)} className="text-slate-400 hover:text-slate-600 p-1 text-xl">✕</button>
-                </div>
-                <div className="p-6 max-h-[70vh] overflow-y-auto">
-                  {orderedCategories.map((category) => {
-                    const templates = templatesByCategory[category];
-                    return (
-                      <div key={category} className="mb-6">
-                        <h4 className="font-bold text-slate-700 mb-3 text-sm">{category} ({templates.length}개)</h4>
-                        <div className="grid grid-cols-3 gap-3">
-                          {templates.map((template) => (
-                            <button key={template.id} onClick={() => addSlide(template.id)} className="p-4 border-2 border-slate-200 rounded-xl hover:border-indigo-500 hover:shadow-lg text-center group">
-                              <TemplateThumbnail template={template} data={{}} />
-                              <div className="font-semibold text-slate-700 text-xs mt-2">{template.name}</div>
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* PDF 업로드 모달 */}
-          {showPdfUpload && (
-            <div className="absolute inset-0 bg-slate-900/30 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
-              <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden">
-                <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-emerald-50/30">
-                  <h3 className="font-bold text-sm uppercase tracking-widest text-emerald-600">PDF 업로드</h3>
-                  <button onClick={() => setShowPdfUpload(false)} className="text-slate-400 hover:text-slate-600 p-1 text-xl">✕</button>
-                </div>
-                <div className="p-6">
-                  <p className="text-sm text-slate-600 mb-4">소개서 PDF 파일을 업로드하면 내용을 분석하여 자동으로 슬라이드에 배치합니다.</p>
-                  <input
-                    type="file"
-                    accept="application/pdf"
-                    onChange={(e) => e.target.files[0] && handlePdfUpload(e.target.files[0])}
-                    className="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 cursor-pointer"
-                  />
-                  <p className="text-xs text-slate-400 mt-2">* PDF 파일 내 텍스트를 추출하여 슬라이드 내용을 자동으로 채웁니다.</p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {statusMessage && <div className="absolute top-16 left-1/2 -translate-x-1/2 bg-slate-900/90 text-white px-5 py-2 rounded-full shadow-2xl flex items-center gap-2.5 z-[300]"><span className="text-xs font-medium">{statusMessage}</span></div>}
-        </div>
-      );
-    }
-
-    // ==================== 슬라이드 캔버스 렌더러 ====================
-    function SlideCanvas({ template, data, onUpdate, onImageUpload, currentSlideIndex, slides }) {
-      const textRefs = useRef({});
-      const containerRef = useRef(null);
-      const [, forceRender] = useState(0);
-      const [undoStack, setUndoStack] = useState([]);
-
-      // 페이지 번호 계산 함수
-      const getPageNumber = (slideIndex) => {
-        if (!slides || !slides[slideIndex]) return '';
-
-        let pageNumber = 1;
-        for (let i = 0; i < slideIndex; i++) {
-          const templateId = slides[i].templateId;
-          if (!templateId.startsWith('maincover') && !templateId.startsWith('finalcover') && !templateId.startsWith('index')) {
-            pageNumber++;
-          }
-        }
-
-        const currentTemplateId = slides[slideIndex].templateId;
-        if (currentTemplateId.startsWith('maincover') || currentTemplateId.startsWith('finalcover') || currentTemplateId.startsWith('index')) {
-          return '';
-        }
-
-        return `P${pageNumber}`;
-      };
-
-      const handleTextEdit = (elementId, e) => {
-        onUpdate(elementId, e.target.innerText);
-      };
-
-      const handleImageClick = (elementId) => {
-        const input = document.createElement('input');
-        input.type = 'file';
-        input.accept = 'image/*';
-        input.onchange = (e) => {
-          if (e.target.files[0]) onImageUpload(elementId, e.target.files[0]);
-        };
-        input.click();
-      };
-
-      // 섹션 삭제 핸들러 (애니메이션 + Undo 지원)
-      const handleDeleteSection = (sectionKey) => {
-        // Undo 스택에 현재 상태 저장
-        setUndoStack(prev => [...prev, { key: sectionKey, value: false }]);
-
-        // 삭제 애니메이션을 위한 상태 (fade-out)
-        const element = document.querySelector(`[data-section="${sectionKey}"]`);
-        if (element) {
-          element.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
-          element.style.opacity = '0';
-          element.style.transform = 'scale(0.95)';
-
-          setTimeout(() => {
-            onUpdate(sectionKey, true);
-          }, 300);
-        } else {
-          onUpdate(sectionKey, true);
-        }
-      };
-
-      // Ctrl+Z 키보드 이벤트
-      useEffect(() => {
-        const handleKeyDown = (e) => {
-          if ((e.metaKey || e.ctrlKey) && e.key === 'z') {
-            const isInputFocused = document.activeElement.tagName === 'INPUT' ||
-                                   document.activeElement.tagName === 'TEXTAREA' ||
-                                   document.activeElement.contentEditable === 'true';
-
-            if (!isInputFocused && undoStack.length > 0) {
-              e.preventDefault();
-              const lastAction = undoStack[undoStack.length - 1];
-              onUpdate(lastAction.key, false);
-              setUndoStack(prev => prev.slice(0, -1));
-            }
-          }
-        };
-
-        window.addEventListener('keydown', handleKeyDown);
-        return () => window.removeEventListener('keydown', handleKeyDown);
-      }, [undoStack]);
-
-      // Index Type 02용 섹션 상태 - 항상 선언 (React hooks 규칙)
-      const [index02Sections, setIndex02Sections] = useState(() => {
-        if (template.id !== 'index02') return [];
-        if (data.sections) return data.sections;
-
-        return [
-          {
-            id: 'section_1',
-            title: '지면 광고',
-            subtitles: ['광고 노출 지면', '상품 개요', '상품 세부 소개', '광고 효과 분석']
-          },
-          {
-            id: 'section_2',
-            title: '부속 상품 (노출형)',
-            subtitles: ['슈퍼셀렉트 퍼스트', '기획전 (숙박 / 대실)', '검색 · 주변 광고', '프리미엄 배너 광고']
-          },
-          {
-            id: 'section_3',
-            title: '부속 상품 (할인형)',
-            subtitles: ['플러스 쿠폰', '부스트 쿠폰', '선불형 쿠폰', '후불형 쿠폰']
-          }
-        ];
-      });
-
-      // Index Type 02 (Dynamic Sections) 전용 렌더링
-      if (template.id === 'index02') {
-        const sections = index02Sections;
-
-        // 섹션 추가 (최대 3개)
-        const handleAddSection = () => {
-          if (sections.length >= 3) {
-            alert('최대 3개의 섹션만 추가할 수 있습니다.');
-            return;
-          }
-
-          const newSection = {
-            id: `section_${Date.now()}`,
-            title: '타이틀 텍스트',
-            subtitles: ['보조 텍스트', '보조 텍스트', '보조 텍스트', '보조 텍스트']
+      // Cmd/Ctrl + V: 슬라이드 붙여넣기
+      if ((e.metaKey || e.ctrlKey) && e.key === 'v') {
+        e.preventDefault();
+        if (copiedSlide) {
+          const newSlide = {
+            id: `s${Date.now()}`,
+            templateId: copiedSlide.templateId,
+            data: JSON.parse(JSON.stringify(copiedSlide.data || {}))
           };
-
-          setIndex02Sections([...sections, newSection]);
-          onUpdate('sections', [...sections, newSection]);
-        };
-
-        // 섹션 삭제
-        const handleDeleteSection = (sectionId) => {
-          if (sections.length <= 1) {
-            alert('최소 1개의 섹션은 유지되어야 합니다.');
-            return;
-          }
-
-          const newSections = sections.filter(s => s.id !== sectionId);
-          setIndex02Sections(newSections);
-          onUpdate('sections', newSections);
-        };
-
-        // 타이틀 수정
-        const handleTitleEdit = (sectionId, newTitle) => {
-          const newSections = sections.map(s =>
-            s.id === sectionId ? { ...s, title: newTitle } : s
-          );
-          setIndex02Sections(newSections);
-          onUpdate('sections', newSections);
-        };
-
-        // 보조 타이틀 수정
-        const handleSubtitleEdit = (sectionId, subtitleIndex, newSubtitle) => {
-          const newSections = sections.map(s => {
-            if (s.id === sectionId) {
-              const newSubtitles = [...s.subtitles];
-              newSubtitles[subtitleIndex] = newSubtitle;
-              return { ...s, subtitles: newSubtitles };
-            }
-            return s;
-          });
-          setIndex02Sections(newSections);
-          onUpdate('sections', newSections);
-        };
-
-        // 보조 타이틀 삭제
-        const handleDeleteSubtitle = (sectionId, subtitleIndex) => {
-          const newSections = sections.map(s => {
-            if (s.id === sectionId) {
-              if (s.subtitles.length <= 1) {
-                alert('최소 1개의 보조 타이틀은 유지되어야 합니다.');
-                return s;
-              }
-              const newSubtitles = s.subtitles.filter((_, idx) => idx !== subtitleIndex);
-              return { ...s, subtitles: newSubtitles };
-            }
-            return s;
-          });
-          setIndex02Sections(newSections);
-          onUpdate('sections', newSections);
-        };
-
-        // 보조 타이틀 추가
-        const handleAddSubtitle = (sectionId) => {
-          const newSections = sections.map(s => {
-            if (s.id === sectionId) {
-              if (s.subtitles.length >= 4) {
-                alert('최대 4개의 보조 타이틀만 추가할 수 있습니다.');
-                return s;
-              }
-              return { ...s, subtitles: [...s.subtitles, '새 보조 타이틀'] };
-            }
-            return s;
-          });
-          setIndex02Sections(newSections);
-          onUpdate('sections', newSections);
-        };
-
-        return (
-          <div className="w-full h-full relative" style={{ backgroundColor: '#F7F7F7' }}>
-            {/* 배경 */}
-            <div style={{ position: 'absolute', left: '0px', top: '0px', width: '1920px', height: '1080px', backgroundColor: '#F7F7F7' }} />
-
-            {/* 목차 타이틀 */}
-            <div
-              className="editable-field"
-              contentEditable
-              suppressContentEditableWarning
-              onBlur={(e) => handleTextEdit('main_title', e)}
-              style={{
-                position: 'absolute',
-                left: '120px',
-                top: '100px',
-                fontSize: '90px',
-                fontWeight: '700',
-                color: '#333333',
-                fontFamily: 'Pretendard',
-                letterSpacing: '-0.9px',
-                lineHeight: 1.3,
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis'
-              }}>
-              {data['main_title'] || '목차'}
-            </div>
-
-            {/* 섹션 추가/삭제 버튼 - 우측 상단 */}
-            <div style={{ position: 'absolute', right: '120px', top: '100px', display: 'flex', gap: '12px', zIndex: 10 }}>
-              <button
-                onClick={handleAddSection}
-                disabled={sections.length >= 3}
-                style={{
-                  padding: '12px 24px',
-                  backgroundColor: sections.length >= 3 ? '#CCCCCC' : '#333333',
-                  color: '#FFFFFF',
-                  borderRadius: '8px',
-                  border: 'none',
-                  fontSize: '16px',
-                  fontWeight: '600',
-                  cursor: sections.length >= 3 ? 'not-allowed' : 'pointer',
-                  fontFamily: 'Pretendard',
-                  transition: 'all 0.2s ease'
-                }}
-                title={sections.length >= 3 ? '최대 3개까지만 추가 가능합니다' : '섹션 추가'}>
-                + 섹션 추가
-              </button>
-            </div>
-
-            {/* 동적 섹션 렌더링 */}
-            {sections.map((section, sectionIndex) => {
-              // 섹션별 시작 Y 좌표 계산 (목차보다 조금 아래)
-              let sectionStartY = 150;
-              for (let i = 0; i < sectionIndex; i++) {
-                sectionStartY += 62 * (1 + sections[i].subtitles.length);
-              }
-
-              return (
-                <div key={section.id} className="index02-section-wrapper">
-                  {/* 섹션 타이틀 */}
-                  <div
-                    className="index02-title-row"
-                    style={{
-                      position: 'absolute',
-                      left: '960px',
-                      top: `${sectionStartY}px`,
-                      width: '360px',
-                      height: '62px',
-                      display: 'flex',
-                      alignItems: 'center'
-                    }}>
-                    {/* 번호 (편집 불가) */}
-                    <span
-                      style={{
-                        fontSize: '32px',
-                        fontWeight: '700',
-                        color: '#333333',
-                        fontFamily: 'Pretendard',
-                        letterSpacing: '-0.32px',
-                        lineHeight: 1.3,
-                        marginRight: '8px',
-                        flexShrink: 0
-                      }}>
-                      {String(sectionIndex + 1).padStart(2, '0')}.
-                    </span>
-
-                    {/* 타이틀 텍스트 (편집 가능) */}
-                    <div
-                      className="editable-field"
-                      contentEditable
-                      suppressContentEditableWarning
-                      onBlur={(e) => handleTitleEdit(section.id, e.target.innerText)}
-                      style={{
-                        fontSize: '32px',
-                        fontWeight: '700',
-                        color: '#333333',
-                        fontFamily: 'Pretendard',
-                        letterSpacing: '-0.32px',
-                        lineHeight: 1.3,
-                        flex: 1,
-                        whiteSpace: 'nowrap',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis'
-                      }}>
-                      {section.title}
-                    </div>
-
-                    {/* 섹션 삭제 버튼 - 호버 시에만 표시 */}
-                    <button
-                      onClick={() => handleDeleteSection(section.id)}
-                      className="section-delete-btn"
-                      style={{
-                        position: 'absolute',
-                        left: '-110px',
-                        padding: '10px 16px',
-                        backgroundColor: '#333333',
-                        color: '#FFFFFF',
-                        borderRadius: '6px',
-                        border: 'none',
-                        fontSize: '14px',
-                        fontWeight: '600',
-                        cursor: 'pointer',
-                        fontFamily: 'Pretendard',
-                        transition: 'all 0.2s ease',
-                        opacity: 0,
-                        pointerEvents: sections.length <= 1 ? 'none' : 'auto'
-                      }}
-                      title="섹션 전체 삭제">
-                      섹션 삭제
-                    </button>
-                  </div>
-
-                  {/* 보조 타이틀들 - 타이틀과 같은 행부터 시작 */}
-                  {section.subtitles.map((subtitle, subIndex) => (
-                    <div
-                      key={subIndex}
-                      className="index02-subtitle-row"
-                      style={{
-                        position: 'absolute',
-                        left: '1344px',
-                        top: `${sectionStartY + (subIndex * 62)}px`,
-                        width: '456px',
-                        height: '62px',
-                        display: 'flex',
-                        alignItems: 'center'
-                      }}>
-                      <div
-                        className="editable-field"
-                        contentEditable
-                        suppressContentEditableWarning
-                        onBlur={(e) => handleSubtitleEdit(section.id, subIndex, e.target.innerText)}
-                        style={{
-                          fontSize: '32px',
-                          fontWeight: '700',
-                          color: '#666666',
-                          fontFamily: 'Pretendard',
-                          letterSpacing: '-0.32px',
-                          lineHeight: 1.5,
-                          flex: 1,
-                          whiteSpace: 'nowrap',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis'
-                        }}>
-                        {subtitle}
-                      </div>
-
-                      {/* 행 삭제 버튼 - 호버 시에만 표시 */}
-                      <button
-                        onClick={() => handleDeleteSubtitle(section.id, subIndex)}
-                        className="row-delete-btn"
-                        style={{
-                          marginLeft: '16px',
-                          padding: '8px 14px',
-                          backgroundColor: '#333333',
-                          color: '#FFFFFF',
-                          borderRadius: '5px',
-                          border: 'none',
-                          fontSize: '16px',
-                          fontWeight: '600',
-                          cursor: 'pointer',
-                          fontFamily: 'Pretendard',
-                          transition: 'all 0.2s ease',
-                          opacity: 0,
-                          pointerEvents: section.subtitles.length <= 1 ? 'none' : 'auto'
-                        }}
-                        title="행 삭제">
-                        ×
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              );
-            })}
-
-            {/* CSS for hover effects */}
-            <style jsx>{`
-              .index02-title-row:hover .section-delete-btn {
-                opacity: 1 !important;
-              }
-              .index02-subtitle-row:hover .row-delete-btn {
-                opacity: 1 !important;
-              }
-              .section-delete-btn:hover {
-                background-color: #000000 !important;
-              }
-              .row-delete-btn:hover {
-                background-color: #000000 !important;
-              }
-            `}</style>
-
-            {/* Footer - 로고 */}
-            <div style={{ position: 'absolute', left: '120px', top: '991px', width: '118px', height: '20px' }}>
-              <img src="assets/icons/yeogi-logo.svg" alt="" className="w-full h-full object-contain" />
-            </div>
-
-            {/* Footer - 카피라이트 */}
-            <div style={{
-              position: 'absolute',
-              left: '260px',
-              top: '990px',
-              fontSize: '20px',
-              fontWeight: '500',
-              color: '#BBBBBB',
-              fontFamily: 'Pretendard',
-              letterSpacing: '-0.2px',
-              lineHeight: 1.4
-            }}>
-              2026 © GC Company Corp. All rights reserved.
-            </div>
-
-            {/* Footer - 페이지 번호 */}
-            <div style={{
-              position: 'absolute',
-              left: '1680px',
-              top: '990px',
-              fontSize: '20px',
-              fontWeight: '500',
-              color: '#999999',
-              fontFamily: 'Pretendard',
-              letterSpacing: '-0.2px',
-              lineHeight: 1.4,
-              textAlign: 'right',
-              width: '120px'
-            }}>
-              {getPageNumber(currentSlideIndex)}
-            </div>
-          </div>
-        );
+          const newSlides = [...slides];
+          newSlides.splice(currentSlideIndex + 1, 0, newSlide);
+          setSlides(newSlides);
+          setCurrentSlideIndex(currentSlideIndex + 1);
+          showStatus('슬라이드가 붙여넣기 되었습니다! ✨');
+        } else {
+          showStatus('복사된 슬라이드가 없습니다.');
+        }
+        return;
       }
 
-      // Index Type 01 (Draggable TOC) 전용 렌더링
-      if (template.id === 'index01' && template.isDraggable) {
-        // TOC 항목 상태 관리
-        const [tocItems, setTocItems] = useState(template.tocItems || []);
-        const [draggedIndex, setDraggedIndex] = useState(null);
-
-        // 드래그 시작
-        const handleDragStart = (index) => {
-          setDraggedIndex(index);
-        };
-
-        // 드래그 중
-        const handleDragOver = (e, index) => {
-          e.preventDefault();
-        };
-
-        // 드롭
-        const handleDrop = (e, dropIndex) => {
-          e.preventDefault();
-          if (draggedIndex === null || draggedIndex === dropIndex) return;
-
-          const newItems = [...tocItems];
-          const [removed] = newItems.splice(draggedIndex, 1);
-          newItems.splice(dropIndex, 0, removed);
-
-          setTocItems(newItems);
-          setDraggedIndex(null);
-        };
-
-        // 항목 삭제
-        const handleDeleteItem = (index) => {
-          const newItems = tocItems.filter((_, i) => i !== index);
-          setTocItems(newItems);
-        };
-
-        return (
-          <div className="w-full h-full relative" style={{ backgroundColor: template.elements[0]?.fill || '#F7F7F7' }}>
-            {/* 배경 및 고정 요소들 */}
-            {template.elements.map((element, idx) => {
-              if (element.type === 'rect') {
-                return <div key={idx} style={{ position: 'absolute', left: `${element.x}px`, top: `${element.y}px`, width: `${element.width}px`, height: `${element.height}px`, backgroundColor: element.fill }} />;
-              }
-              if (element.type === 'image') {
-                return (
-                  <div key={idx} style={{ position: 'absolute', left: `${element.x}px`, top: `${element.y}px`, width: `${element.width}px`, height: `${element.height}px` }}>
-                    <img src={element.url} alt="" className="w-full h-full object-contain" />
-                  </div>
-                );
-              }
-              if (element.type === 'text') {
-                const elementId = `text_${idx}`;
-                const value = data[elementId] || element.content;
-                return (
-                  <div
-                    key={elementId}
-                    className="editable-field"
-                    contentEditable={element.editable !== false}
-                    suppressContentEditableWarning
-                    onBlur={(e) => element.editable !== false && handleTextEdit(elementId, e)}
-                    style={{
-                      position: 'absolute',
-                      left: `${element.x}px`,
-                      top: `${element.y}px`,
-                      fontSize: `${element.fontSize}px`,
-                      fontWeight: element.fontWeight,
-                      color: element.fill,
-                      fontFamily: element.fontFamily,
-                      letterSpacing: `${element.letterSpacing}px`,
-                      lineHeight: element.lineHeight,
-                      width: element.width ? `${element.width}px` : 'auto',
-                      textAlign: element.textAlign || 'left'
-                    }}>
-                    {value}
-                  </div>
-                );
-              }
-              return null;
-            })}
-
-            {/* 드래그 가능한 목차 항목들 */}
-            <div style={{ position: 'absolute', left: '120px', top: '280px', width: '1680px' }}>
-              {tocItems.map((item, index) => (
-                <div
-                  key={item.id}
-                  className={`toc-row ${draggedIndex === index ? 'dragging' : ''}`}
-                  draggable
-                  onDragStart={() => handleDragStart(index)}
-                  onDragOver={(e) => handleDragOver(e, index)}
-                  onDrop={(e) => handleDrop(e, index)}
-                  onDragEnd={() => setDraggedIndex(null)}
-                >
-                  {/* 드래그 핸들 */}
-                  <div className="drag-handle">
-                    <span></span>
-                    <span></span>
-                    <span></span>
-                  </div>
-
-                  {/* 번호 */}
-                  <div
-                    className="toc-number editable-field"
-                    contentEditable
-                    suppressContentEditableWarning
-                    onBlur={(e) => {
-                      const newItems = [...tocItems];
-                      newItems[index].number = e.target.innerText;
-                      setTocItems(newItems);
-                    }}
-                  >
-                    {item.number}
-                  </div>
-
-                  {/* 제목 */}
-                  <div
-                    className="toc-title editable-field"
-                    contentEditable
-                    suppressContentEditableWarning
-                    onBlur={(e) => {
-                      const newItems = [...tocItems];
-                      newItems[index].title = e.target.innerText;
-                      setTocItems(newItems);
-                    }}
-                  >
-                    {item.title}
-                  </div>
-
-                  {/* 페이지 */}
-                  <div
-                    className="toc-page editable-field"
-                    contentEditable
-                    suppressContentEditableWarning
-                    onBlur={(e) => {
-                      const newItems = [...tocItems];
-                      newItems[index].page = e.target.innerText;
-                      setTocItems(newItems);
-                    }}
-                  >
-                    {item.page}
-                  </div>
-
-                  {/* 삭제 버튼 */}
-                  <div className="toc-delete-btn" onClick={() => handleDeleteItem(index)}>
-                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M18 6L6 18M6 6l12 12" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        );
+      // Cmd/Ctrl + D: 슬라이드 복제
+      if ((e.metaKey || e.ctrlKey) && e.key === 'd') {
+        e.preventDefault();
+        duplicateSlide();
+        return;
       }
 
-      // Main Cover & Final Cover Type 02, 03 전용 렌더링 (Type 01, 02, 03)
-      if (template.id === 'maincover01' || template.id === 'maincover02' || template.id === 'maincover03' || template.id === 'finalcover02' || template.id === 'finalcover03') {
-        return (
-          <div className="w-full h-full relative" style={{ backgroundColor: template.elements[0]?.fill || '#FFFFFF' }}>
-            {template.elements.map((element, idx) => {
-              const elementId = `${element.type}_${idx}`;
-
-              // 배경 rect 렌더링
-              if (element.type === 'rect') {
-                return <div key={idx} style={{ position: 'absolute', left: `${element.x}px`, top: `${element.y}px`, width: `${element.width}px`, height: `${element.height}px`, backgroundColor: element.fill }} />;
-              }
-
-              // 로고 이미지 렌더링
-              if (element.type === 'image' && !element.editable) {
-                return (
-                  <div key={idx} className="absolute" style={{ left: `${element.x}px`, top: `${element.y}px`, width: `${element.width}px`, height: `${element.height}px` }}>
-                    <img src={element.url} alt="" className="w-full h-full object-contain" />
-                  </div>
-                );
-              }
-
-              return null;
-            })}
-
-            {/* Flexbox 텍스트 컨테이너 */}
-            <div style={{
-              position: 'absolute',
-              left: (template.id === 'maincover03' || template.id === 'finalcover03') ? '50%' : '120px',
-              top: (template.id === 'maincover03' || template.id === 'finalcover03') ? '395px' : '100px',
-              transform: (template.id === 'maincover03' || template.id === 'finalcover03') ? 'translateX(-50%)' : 'none',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: (template.id === 'maincover03' || template.id === 'finalcover03') ? '25px' : '0px'
-            }}>
-              {template.elements
-                .map((el, originalIdx) => ({ el, originalIdx }))
-                .filter(({ el }) => el.type === 'text' && el.editable)
-                .sort((a, b) => a.el.y - b.el.y)
-                .map(({ el: element, originalIdx }, textIdx) => {
-                  const elementId = `text_${originalIdx}`;
-                  const value = data[elementId] || element.content;
-
-                  // Type 1, 2 & Final Cover 2의 간격 계산: 카테고리 → 타이틀 → 본문
-                  let marginBottom = '0px';
-                  if (template.id === 'maincover01' || template.id === 'maincover02' || template.id === 'finalcover02') {
-                    if (textIdx === 0) marginBottom = '12px'; // 카테고리 다음
-                    if (textIdx === 1) marginBottom = '30px'; // 타이틀 다음
-                  }
-
-                  return (
-                    <div
-                      key={elementId}
-                      className="editable-field"
-                      contentEditable
-                      suppressContentEditableWarning
-                      onBlur={(e) => handleTextEdit(elementId, e)}
-                      style={{
-                        fontSize: `${element.fontSize}px`,
-                        fontWeight: element.fontWeight,
-                        color: element.fill,
-                        fontFamily: element.fontFamily,
-                        letterSpacing: `${element.letterSpacing}px`,
-                        lineHeight: element.lineHeight,
-                        width: element.width ? `${element.width}px` : 'auto',
-                        textAlign: element.textAlign || 'left',
-                        whiteSpace: 'pre-wrap',
-                        wordBreak: 'break-word',
-                        marginBottom: marginBottom
-                      }}>
-                      {value}
-                    </div>
-                  );
-                })}
-            </div>
-          </div>
-        );
+      // ArrowUp: 이전 슬라이드
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        if (currentSlideIndex > 0) {
+          setCurrentSlideIndex(currentSlideIndex - 1);
+        }
+        return;
       }
 
-      // Core Value Type 01 전용 렌더링
-      if (template.id === 'corevalue01') {
-        return (
-          <div className="w-full h-full relative" style={{ backgroundColor: template.elements[0]?.fill || '#FFFFFF' }}>
-            {/* 배경 */}
-
-            {/* 상단 영역 + 컨테이너를 flexbox로 */}
-            <div style={{
-              position: 'absolute',
-              left: '1050px',
-              top: '100px',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '0px'
-            }}>
-              {/* 핵심가치 */}
-              <div
-                className="editable-field"
-                contentEditable
-                suppressContentEditableWarning
-                onBlur={(e) => handleTextEdit('text_1', e)}
-                style={{
-                  fontSize: '32px',
-                  fontWeight: '700',
-                  color: '#BBBBBB',
-                  fontFamily: 'Pretendard',
-                  letterSpacing: '-0.32px',
-                  lineHeight: 1.3,
-                  marginBottom: '2px'
-                }}>
-                {data['text_1'] || template.elements[1].content}
-              </div>
-
-              {/* 메인 타이틀 */}
-              <div
-                className="editable-field"
-                contentEditable
-                suppressContentEditableWarning
-                onBlur={(e) => handleTextEdit('text_2', e)}
-                style={{
-                  fontSize: '48px',
-                  fontWeight: '700',
-                  color: '#333333',
-                  fontFamily: 'Pretendard',
-                  letterSpacing: '-0.48px',
-                  lineHeight: 1.3,
-                  width: '750px',
-                  marginBottom: '24px'
-                }}>
-                {data['text_2'] || template.elements[2].content}
-              </div>
-
-              {/* 본문 - 여기가 줄어들면 아래 컨테이너가 올라감 */}
-              <div
-                className="editable-field"
-                contentEditable
-                suppressContentEditableWarning
-                onBlur={(e) => handleTextEdit('text_3', e)}
-                style={{
-                  fontSize: '20px',
-                  fontWeight: '500',
-                  color: '#666666',
-                  fontFamily: 'Pretendard',
-                  letterSpacing: '-0.2px',
-                  lineHeight: 1.5,
-                  width: '750px',
-                  marginBottom: '28px'
-                }}>
-                {data['text_3'] || template.elements[3].content}
-              </div>
-
-              {/* 컨테이너 */}
-              <div
-                ref={containerRef}
-                style={{
-                  width: '750px',
-                  backgroundColor: '#F7F7F7',
-                  borderRadius: '24px',
-                  padding: '40px',
-                  display: 'flex',
-                  flexDirection: 'column'
-                }}>
-                {/* item 1 */}
-                {(!data['hidden_item_1']) && (
-                  <div data-section="hidden_item_1" className="delete-section-wrapper" style={{marginBottom: '40px', position: 'relative', opacity: 1, transform: 'scale(1)', transition: 'opacity 0.3s ease, transform 0.3s ease'}}>
-                    <button
-                      onClick={() => handleDeleteSection('hidden_item_1')}
-                      className="delete-section-btn"
-                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(0, 0, 0, 0.8)'}
-                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'rgba(0, 0, 0, 0.6)'}
-                      style={{
-                        position: 'absolute',
-                        top: '5px',
-                        right: '5px',
-                        width: '24px',
-                        height: '24px',
-                        borderRadius: '4px',
-                        backgroundColor: 'rgba(0, 0, 0, 0.6)',
-                        color: 'white',
-                        border: 'none',
-                        cursor: 'pointer',
-                        fontSize: '16px',
-                        fontWeight: 'normal',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        zIndex: 10,
-                        opacity: 0,
-                        transition: 'opacity 0.2s ease, background-color 0.15s ease'
-                      }}
-                      title="섹션 삭제 (Ctrl+Z로 복원)">
-                      ×
-                    </button>
-                    <div
-                      className="editable-field"
-                      contentEditable
-                      suppressContentEditableWarning
-                      onBlur={(e) => handleTextEdit('text_5', e)}
-                      style={{fontSize: '32px', fontWeight: '700', color: '#333333', fontFamily: 'Pretendard', letterSpacing: '-0.32px', lineHeight: 1.5, width: '670px', marginBottom: '16px'}}>
-                      {data['text_5'] || template.elements[5].content}
-                    </div>
-                    <div
-                      className="editable-field"
-                      contentEditable
-                      suppressContentEditableWarning
-                      onBlur={(e) => handleTextEdit('text_6', e)}
-                      style={{fontSize: '20px', fontWeight: '500', color: '#666666', fontFamily: 'Pretendard', letterSpacing: '-0.2px', lineHeight: 1.5, width: '670px'}}>
-                      {data['text_6'] || template.elements[6].content}
-                    </div>
-                  </div>
-                )}
-
-                {/* item 2 */}
-                {(!data['hidden_item_2']) && (
-                  <div data-section="hidden_item_2" className="delete-section-wrapper" style={{marginBottom: '40px', position: 'relative', opacity: 1, transform: 'scale(1)', transition: 'opacity 0.3s ease, transform 0.3s ease'}}>
-                    <button
-                      onClick={() => handleDeleteSection('hidden_item_2')}
-                      className="delete-section-btn"
-                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(0, 0, 0, 0.8)'}
-                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'rgba(0, 0, 0, 0.6)'}
-                      style={{
-                        position: 'absolute',
-                        top: '5px',
-                        right: '5px',
-                        width: '24px',
-                        height: '24px',
-                        borderRadius: '4px',
-                        backgroundColor: 'rgba(0, 0, 0, 0.6)',
-                        color: 'white',
-                        border: 'none',
-                        cursor: 'pointer',
-                        fontSize: '16px',
-                        fontWeight: 'normal',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        zIndex: 10,
-                        opacity: 0,
-                        transition: 'opacity 0.2s ease, background-color 0.15s ease'
-                      }}
-                      title="섹션 삭제 (Ctrl+Z로 복원)">
-                      ×
-                    </button>
-                    <div
-                      className="editable-field"
-                      contentEditable
-                      suppressContentEditableWarning
-                      onBlur={(e) => handleTextEdit('text_7', e)}
-                      style={{fontSize: '32px', fontWeight: '700', color: '#333333', fontFamily: 'Pretendard', letterSpacing: '-0.32px', lineHeight: 1.5, width: '670px', marginBottom: '16px'}}>
-                      {data['text_7'] || template.elements[7].content}
-                    </div>
-                    <div
-                      className="editable-field"
-                      contentEditable
-                      suppressContentEditableWarning
-                      onBlur={(e) => handleTextEdit('text_8', e)}
-                      style={{fontSize: '20px', fontWeight: '500', color: '#666666', fontFamily: 'Pretendard', letterSpacing: '-0.2px', lineHeight: 1.5, width: '670px'}}>
-                      {data['text_8'] || template.elements[8].content}
-                    </div>
-                  </div>
-                )}
-
-                {/* item 3 */}
-                {(!data['hidden_item_3']) && (
-                  <div data-section="hidden_item_3" className="delete-section-wrapper" style={{position: 'relative', opacity: 1, transform: 'scale(1)', transition: 'opacity 0.3s ease, transform 0.3s ease'}}>
-                    <button
-                      onClick={() => handleDeleteSection('hidden_item_3')}
-                      className="delete-section-btn"
-                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(0, 0, 0, 0.8)'}
-                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'rgba(0, 0, 0, 0.6)'}
-                      style={{
-                        position: 'absolute',
-                        top: '5px',
-                        right: '5px',
-                        width: '24px',
-                        height: '24px',
-                        borderRadius: '4px',
-                        backgroundColor: 'rgba(0, 0, 0, 0.6)',
-                        color: 'white',
-                        border: 'none',
-                        cursor: 'pointer',
-                        fontSize: '16px',
-                        fontWeight: 'normal',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        zIndex: 10,
-                        opacity: 0,
-                        transition: 'opacity 0.2s ease, background-color 0.15s ease'
-                      }}
-                      title="섹션 삭제 (Ctrl+Z로 복원)">
-                      ×
-                    </button>
-                    <div
-                      className="editable-field"
-                      contentEditable
-                      suppressContentEditableWarning
-                      onBlur={(e) => handleTextEdit('text_9', e)}
-                      style={{fontSize: '32px', fontWeight: '700', color: '#333333', fontFamily: 'Pretendard', letterSpacing: '-0.32px', lineHeight: 1.5, width: '670px', marginBottom: '16px'}}>
-                      {data['text_9'] || template.elements[9].content}
-                    </div>
-                    <div
-                      className="editable-field"
-                      contentEditable
-                      suppressContentEditableWarning
-                      onBlur={(e) => handleTextEdit('text_10', e)}
-                      style={{fontSize: '20px', fontWeight: '500', color: '#666666', fontFamily: 'Pretendard', letterSpacing: '-0.2px', lineHeight: 1.5, width: '670px'}}>
-                      {data['text_10'] || template.elements[10].content}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* 푸터 - 로고 */}
-            <div className="absolute" style={{ left: '120px', top: '991px', width: '118px', height: '20px' }}>
-              <img src={template.elements[11].url} alt="" className="w-full h-full object-contain" />
-            </div>
-
-            {/* 푸터 - 카피라이트 */}
-            <div className="absolute whitespace-pre-wrap" style={{ left: '260px', top: '990px', fontSize: '20px', fontWeight: '500', color: '#BBBBBB', fontFamily: 'Pretendard', letterSpacing: '-0.2px', lineHeight: 1.4 }}>
-              {template.elements[12].content}
-            </div>
-
-            {/* 푸터 - 페이지 번호 (자동 계산) */}
-            <div
-              className="editable-field absolute"
-              contentEditable={false}
-              style={{ left: '1680px', top: '990px', fontSize: '20px', fontWeight: '500', color: '#999999', fontFamily: 'Pretendard', letterSpacing: '-0.2px', lineHeight: 1.4, textAlign: 'right', width: '120px', cursor: 'default' }}>
-              {getPageNumber(currentSlideIndex)}
-            </div>
-          </div>
-        );
+      // ArrowDown: 다음 슬라이드
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        if (currentSlideIndex < slides.length - 1) {
+          setCurrentSlideIndex(currentSlideIndex + 1);
+        }
+        return;
       }
+    };
 
-      return (
-        <div className="w-full h-full relative" style={{ backgroundColor: template.elements[0]?.fill || '#FFFFFF' }}>
-          {template.elements.map((element, idx) => {
-            const elementId = `${element.type}_${idx}`;
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [currentSlideIndex, slides, copiedSlide, showTemplateModal, showPdfUpload]);
 
-            if (element.type === 'rect') {
-              // Core Value Type 01 컨테이너 - 내부에 텍스트를 포함
-              if (template.id === 'corevalue01' && idx === 4) {
-                return (
-                  <div
-                    key={idx}
-                    ref={containerRef}
-                    style={{
-                      position: 'absolute',
-                      left: `${element.x}px`,
-                      top: `${element.y}px`,
-                      width: `${element.width}px`,
-                      backgroundColor: element.fill,
-                      borderRadius: element.cornerRadius ? `${element.cornerRadius}px` : '0',
-                      padding: '40px',
-                      display: 'flex',
-                      flexDirection: 'column'
-                    }}>
-                    {/* item 1 */}
-                    {(!data['hidden_item_1']) && (
-                      <div data-section="hidden_item_1" className="delete-section-wrapper" style={{marginBottom: '40px', position: 'relative', opacity: 1, transform: 'scale(1)', transition: 'opacity 0.3s ease, transform 0.3s ease'}}>
-                        <button
-                          onClick={() => handleDeleteSection('hidden_item_1')}
-                          className="delete-section-btn"
-                          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(0, 0, 0, 0.8)'}
-                          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'rgba(0, 0, 0, 0.6)'}
-                          style={{
-                            position: 'absolute',
-                            top: '5px',
-                            right: '5px',
-                            width: '24px',
-                            height: '24px',
-                            borderRadius: '4px',
-                            backgroundColor: 'rgba(0, 0, 0, 0.6)',
-                            color: 'white',
-                            border: 'none',
-                            cursor: 'pointer',
-                            fontSize: '16px',
-                            fontWeight: 'normal',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            zIndex: 10,
-                            opacity: 0,
-                            transition: 'opacity 0.2s ease, background-color 0.15s ease'
-                          }}
-                          title="섹션 삭제 (Ctrl+Z로 복원)">
-                          ×
-                        </button>
-                        <div
-                          className="editable-field"
-                          contentEditable
-                          suppressContentEditableWarning
-                          onBlur={(e) => handleTextEdit('text_5', e)}
-                          style={{fontSize: '32px', fontWeight: '700', color: '#333333', fontFamily: 'Pretendard', letterSpacing: '-0.32px', lineHeight: 1.5, width: '670px', marginBottom: '16px'}}>
-                          {data['text_5'] || template.elements[5].content}
-                        </div>
-                        <div
-                          className="editable-field"
-                          contentEditable
-                          suppressContentEditableWarning
-                          onBlur={(e) => handleTextEdit('text_6', e)}
-                          style={{fontSize: '20px', fontWeight: '500', color: '#666666', fontFamily: 'Pretendard', letterSpacing: '-0.2px', lineHeight: 1.5, width: '670px'}}>
-                          {data['text_6'] || template.elements[6].content}
-                        </div>
-                      </div>
-                    )}
+  useEffect(() => {
+    const handleResize = () => {
+      if (containerRef.current) {
+        const { clientWidth, clientHeight } = containerRef.current;
+        const scaleW = (clientWidth - 20) / 1920;
+        const scaleH = (clientHeight - 130) / 1080;
+        setScale(Math.min(scaleW, scaleH, 1.4));
+      }
+    };
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
-                    {/* item 2 */}
-                    {(!data['hidden_item_2']) && (
-                      <div data-section="hidden_item_2" className="delete-section-wrapper" style={{marginBottom: '40px', position: 'relative', opacity: 1, transform: 'scale(1)', transition: 'opacity 0.3s ease, transform 0.3s ease'}}>
-                        <button
-                          onClick={() => handleDeleteSection('hidden_item_2')}
-                          className="delete-section-btn"
-                          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(0, 0, 0, 0.8)'}
-                          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'rgba(0, 0, 0, 0.6)'}
-                          style={{
-                            position: 'absolute',
-                            top: '5px',
-                            right: '5px',
-                            width: '24px',
-                            height: '24px',
-                            borderRadius: '4px',
-                            backgroundColor: 'rgba(0, 0, 0, 0.6)',
-                            color: 'white',
-                            border: 'none',
-                            cursor: 'pointer',
-                            fontSize: '16px',
-                            fontWeight: 'normal',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            zIndex: 10,
-                            opacity: 0,
-                            transition: 'opacity 0.2s ease, background-color 0.15s ease'
-                          }}
-                          title="섹션 삭제 (Ctrl+Z로 복원)">
-                          ×
-                        </button>
-                        <div
-                          className="editable-field"
-                          contentEditable
-                          suppressContentEditableWarning
-                          onBlur={(e) => handleTextEdit('text_7', e)}
-                          style={{fontSize: '32px', fontWeight: '700', color: '#333333', fontFamily: 'Pretendard', letterSpacing: '-0.32px', lineHeight: 1.5, width: '670px', marginBottom: '16px'}}>
-                          {data['text_7'] || template.elements[7].content}
-                        </div>
-                        <div
-                          className="editable-field"
-                          contentEditable
-                          suppressContentEditableWarning
-                          onBlur={(e) => handleTextEdit('text_8', e)}
-                          style={{fontSize: '20px', fontWeight: '500', color: '#666666', fontFamily: 'Pretendard', letterSpacing: '-0.2px', lineHeight: 1.5, width: '670px'}}>
-                          {data['text_8'] || template.elements[8].content}
-                        </div>
-                      </div>
-                    )}
+  const currentSlide = slides[currentSlideIndex];
+  const currentTemplate = currentSlide ? ALL_TEMPLATES[currentSlide.templateId] : null;
 
-                    {/* item 3 */}
-                    {(!data['hidden_item_3']) && (
-                      <div data-section="hidden_item_3" className="delete-section-wrapper" style={{position: 'relative', opacity: 1, transform: 'scale(1)', transition: 'opacity 0.3s ease, transform 0.3s ease'}}>
-                        <button
-                          onClick={() => handleDeleteSection('hidden_item_3')}
-                          className="delete-section-btn"
-                          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(0, 0, 0, 0.8)'}
-                          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'rgba(0, 0, 0, 0.6)'}
-                          style={{
-                            position: 'absolute',
-                            top: '5px',
-                            right: '5px',
-                            width: '24px',
-                            height: '24px',
-                            borderRadius: '4px',
-                            backgroundColor: 'rgba(0, 0, 0, 0.6)',
-                            color: 'white',
-                            border: 'none',
-                            cursor: 'pointer',
-                            fontSize: '16px',
-                            fontWeight: 'normal',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            zIndex: 10,
-                            opacity: 0,
-                            transition: 'opacity 0.2s ease, background-color 0.15s ease'
-                          }}
-                          title="섹션 삭제 (Ctrl+Z로 복원)">
-                          ×
-                        </button>
-                        <div
-                          className="editable-field"
-                          contentEditable
-                          suppressContentEditableWarning
-                          onBlur={(e) => handleTextEdit('text_9', e)}
-                          style={{fontSize: '32px', fontWeight: '700', color: '#333333', fontFamily: 'Pretendard', letterSpacing: '-0.32px', lineHeight: 1.5, width: '670px', marginBottom: '16px'}}>
-                          {data['text_9'] || template.elements[9].content}
-                        </div>
-                        <div
-                          className="editable-field"
-                          contentEditable
-                          suppressContentEditableWarning
-                          onBlur={(e) => handleTextEdit('text_10', e)}
-                          style={{fontSize: '20px', fontWeight: '500', color: '#666666', fontFamily: 'Pretendard', letterSpacing: '-0.2px', lineHeight: 1.5, width: '670px'}}>
-                          {data['text_10'] || template.elements[10].content}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                );
-              }
+  const templatesByCategory = Object.values(ALL_TEMPLATES).reduce((acc, template) => {
+    if (!acc[template.category]) acc[template.category] = [];
+    acc[template.category].push(template);
+    return acc;
+  }, {});
 
-              return (
-                <div key={idx} style={{ position: 'absolute', left: `${element.x}px`, top: `${element.y}px`, width: `${element.width}px`, height: `${element.height}px`, backgroundColor: element.fill, borderRadius: element.cornerRadius ? `${element.cornerRadius}px` : '0', border: element.stroke ? `${element.strokeWidth}px solid ${element.stroke}` : 'none' }} />
-              );
-            }
+  // 카테고리 순서 정의
+  const categoryOrder = ['Main Cover', 'Index', 'Core Value', 'Table', 'Section', 'Mobile', 'PC', 'FAQ', 'Contact', 'Final Cover'];
+  const orderedCategories = categoryOrder.filter(cat => templatesByCategory[cat]);
 
-            if (element.type === 'text' && element.editable) {
-              // Core Value Type 01 컨테이너 내부 텍스트는 위에서 렌더링됨
-              if (template.id === 'corevalue01' && idx >= 5 && idx <= 10) {
-                return null;
-              }
+  // 현재 슬라이드의 카테고리 템플릿들만 가져오기
+  const currentCategory = currentTemplate?.category;
+  const currentCategoryTemplates = currentCategory ? templatesByCategory[currentCategory] : [];
 
-              // 페이지 번호 자동 계산 (x:1680, y:990 위치)
-              const isPageNumber = element.x === 1680 && element.y === 990;
-              const autoPageNumber = isPageNumber ? getPageNumber(currentSlideIndex) : null;
-
-              let displayValue = data[elementId] || element.content;
-              if (autoPageNumber !== null) {
-                displayValue = autoPageNumber;
-              }
-
-              const isCenterAlignedWithoutWidth = element.textAlign === 'center' && !element.width;
-
-              return (
-                <div
-                  key={idx}
-                  ref={el => textRefs.current[elementId] = el}
-                  className="editable-field absolute"
-                  contentEditable={!isPageNumber}
-                  suppressContentEditableWarning
-                  onBlur={(e) => handleTextEdit(elementId, e)}
-                  style={{ left: isCenterAlignedWithoutWidth ? '50%' : `${element.x}px`, top: `${element.y}px`, fontSize: `${element.fontSize}px`, fontWeight: element.fontWeight, color: element.fill, maxWidth: element.width ? `${element.width}px` : 'none', width: element.width ? `${element.width}px` : 'auto', lineHeight: element.lineHeight || 1.5, fontFamily: element.fontFamily, letterSpacing: element.letterSpacing ? `${element.letterSpacing}px` : 'normal', textAlign: element.textAlign || 'left', opacity: element.opacity || 1, transform: isCenterAlignedWithoutWidth ? 'translateX(-50%)' : 'none', whiteSpace: 'pre-wrap', wordBreak: 'break-word', cursor: isPageNumber ? 'default' : 'text' }}>
-                  {displayValue}
-                </div>
-              );
-            }
-
-            if (element.type === 'text' && !element.editable) {
-              const isCenterAlignedWithoutWidth = element.textAlign === 'center' && !element.width;
-              return (
-                <div key={idx} className="absolute whitespace-pre-wrap" style={{ left: isCenterAlignedWithoutWidth ? '50%' : `${element.x}px`, top: `${element.y}px`, fontSize: `${element.fontSize}px`, fontWeight: element.fontWeight, color: element.fill, maxWidth: element.width ? `${element.width}px` : 'none', width: element.width ? `${element.width}px` : 'auto', lineHeight: element.lineHeight || 1.5, fontFamily: element.fontFamily, letterSpacing: element.letterSpacing ? `${element.letterSpacing}px` : 'normal', textAlign: element.textAlign || 'left', opacity: element.opacity || 1, transform: isCenterAlignedWithoutWidth ? 'translateX(-50%)' : 'none' }}>
-                  {element.content}
-                </div>
-              );
-            }
-
-            if (element.type === 'image' && element.editable) {
-              const value = data[elementId] || (element.placeholder ? 'https://via.placeholder.com/' + element.width + 'x' + element.height + '/f0f0f0/999999?text=Image' : element.url);
-              return (
-                <div key={idx} className="editable-image absolute" onClick={() => handleImageClick(elementId)} style={{ left: `${element.x}px`, top: `${element.y}px`, width: `${element.width}px`, height: `${element.height}px` }}>
-                  <img src={value} alt="" className="w-full h-full object-cover" />
-                </div>
-              );
-            }
-
-            if (element.type === 'image' && !element.editable) {
-              const value = element.url;
-              return (
-                <div key={idx} className="absolute" style={{ left: `${element.x}px`, top: `${element.y}px`, width: `${element.width}px`, height: `${element.height}px` }}>
-                  <img src={value} alt="" className="w-full h-full object-contain" />
-                </div>
-              );
-            }
-
-            if (element.type === 'line') {
-              return (
-                <svg key={idx} style={{ position: 'absolute', left: `${Math.min(element.x1, element.x2)}px`, top: `${Math.min(element.y1, element.y2)}px`, width: `${Math.abs(element.x2 - element.x1)}px`, height: `${Math.abs(element.y2 - element.y1)}px`, overflow: 'visible' }}>
-                  <line x1={element.x1 < element.x2 ? 0 : Math.abs(element.x2 - element.x1)} y1={element.y1 < element.y2 ? 0 : Math.abs(element.y2 - element.y1)} x2={element.x1 < element.x2 ? Math.abs(element.x2 - element.x1) : 0} y2={element.y1 < element.y2 ? Math.abs(element.y2 - element.y1) : 0} stroke={element.stroke} strokeWidth={element.strokeWidth} />
-                </svg>
-              );
-            }
-
-            return null;
-          })}
+  return (
+    <div className={`h-screen flex flex-col overflow-hidden font-sans`}>
+      <nav className={`${theme.navBg} border-b ${theme.border} px-6 flex items-center justify-between z-50 shadow-sm py-3`}>
+        <div className="flex items-center gap-3">
+          <span className={`font-bold ${theme.textMain} tracking-tight text-base`}>TransformTrack 소개서 빌더</span>
+          <div className={`hidden sm:flex px-2 py-0.5 rounded text-[10px] font-bold border ${theme.border} ${theme.textSub}`}>1920 x 1080</div>
+          <button onClick={() => setShowPdfUpload(true)} className="px-3 py-1.5 text-xs font-bold bg-emerald-100 text-emerald-700 hover:bg-emerald-200 rounded-lg">📄 PDF 업로드</button>
         </div>
-      );
-    }
 
-    // ==================== 템플릿 썸네일 (16:9 미니 프리뷰) ====================
-    function TemplateThumbnail({ template, data, slideIndex, slides }) {
-      const containerRef = useRef(null);
-      const [thumbnailScale, setThumbnailScale] = useState(0.1);
+        {/* 현재 카테고리의 템플릿 Type 선택 */}
+        <div className="flex-1 flex items-center justify-center gap-3 overflow-x-auto no-scrollbar">
+          {currentCategory && (
+            <>
+              <span className="text-sm font-bold text-slate-700 mr-1">{currentCategory}:</span>
+              {currentCategoryTemplates.map((template) => {
+                const isCurrentTemplate = currentSlide?.templateId === template.id;
+                return (
+                  <button
+                    key={template.id}
+                    onClick={() => replaceCurrentSlide(template.id)}
+                    className={`px-4 py-2 text-sm font-bold rounded-lg whitespace-nowrap ${
+                      isCurrentTemplate
+                        ? 'bg-indigo-600 text-white shadow-md'
+                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    }`}
+                  >
+                    {template.name}
+                  </button>
+                );
+              })}
+            </>
+          )}
+        </div>
 
-      useEffect(() => {
-        if (containerRef.current) {
-          const width = containerRef.current.offsetWidth;
-          const scale = width / 1920;
-          setThumbnailScale(scale);
-        }
-      }, []);
-
-      // 페이지 번호 계산 함수 (썸네일용)
-      const getPageNumber = (idx) => {
-        if (!slides || !slides[idx]) return '';
-
-        let pageNumber = 1;
-        for (let i = 0; i < idx; i++) {
-          const templateId = slides[i].templateId;
-          if (!templateId.startsWith('maincover') && !templateId.startsWith('finalcover') && !templateId.startsWith('index')) {
-            pageNumber++;
-          }
-        }
-
-        const currentTemplateId = slides[idx].templateId;
-        if (currentTemplateId.startsWith('maincover') || currentTemplateId.startsWith('finalcover') || currentTemplateId.startsWith('index')) {
-          return '';
-        }
-
-        return `P${pageNumber}`;
-      };
-
-      if (!template) return <div className="thumbnail-preview bg-slate-100"></div>;
-
-      // Main Cover & Final Cover Type 01, 02, 03 전용 렌더링
-      const isMainCoverFlexbox = template.id === 'maincover01' || template.id === 'maincover02' || template.id === 'maincover03' || template.id === 'finalcover02' || template.id === 'finalcover03';
-
-      if (isMainCoverFlexbox) {
-        return (
-          <div ref={containerRef} className="thumbnail-preview">
-            <div className="thumbnail-canvas" style={{ backgroundColor: template.elements[0]?.fill || '#FFFFFF' }}>
-              <div style={{
-                width: '1920px',
-                height: '1080px',
-                transform: `scale(${thumbnailScale})`,
-                transformOrigin: 'top left',
-                position: 'absolute',
-                top: 0,
-                left: 0
-              }}>
-                {/* 배경 rect와 로고 이미지 렌더링 */}
-                {template.elements.map((element, idx) => {
-                  if (element.type === 'rect') {
-                    return <div key={idx} style={{ position: 'absolute', left: `${element.x}px`, top: `${element.y}px`, width: `${element.width}px`, height: `${element.height}px`, backgroundColor: element.fill }} />;
-                  }
-                  if (element.type === 'image' && !element.editable) {
-                    return (
-                      <div key={idx} style={{ position: 'absolute', left: `${element.x}px`, top: `${element.y}px`, width: `${element.width}px`, height: `${element.height}px` }}>
-                        <img src={element.url} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-                      </div>
-                    );
-                  }
-                  return null;
-                })}
-
-                {/* Flexbox 텍스트 컨테이너 */}
-                <div style={{
-                  position: 'absolute',
-                  left: (template.id === 'maincover03' || template.id === 'finalcover03') ? '50%' : '120px',
-                  top: (template.id === 'maincover03' || template.id === 'finalcover03') ? '395px' : '100px',
-                  transform: (template.id === 'maincover03' || template.id === 'finalcover03') ? 'translateX(-50%)' : 'none',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: (template.id === 'maincover03' || template.id === 'finalcover03') ? '25px' : '0px'
-                }}>
-                  {template.elements
-                    .map((el, originalIdx) => ({ el, originalIdx }))
-                    .filter(({ el }) => el.type === 'text' && el.editable)
-                    .sort((a, b) => a.el.y - b.el.y)
-                    .map(({ el: element, originalIdx }, textIdx) => {
-                      const elementId = `text_${originalIdx}`;
-                      const content = data && data[elementId] !== undefined ? data[elementId] : element.content;
-
-                      let marginBottom = '0px';
-                      if (template.id === 'maincover01' || template.id === 'maincover02' || template.id === 'finalcover02') {
-                        if (textIdx === 0) marginBottom = '12px';
-                        if (textIdx === 1) marginBottom = '30px';
-                      }
-
-                      const maxLinesStyle = element.maxLines ? {
-                        display: '-webkit-box',
-                        WebkitLineClamp: element.maxLines,
-                        WebkitBoxOrient: 'vertical',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis'
-                      } : {};
-
-                      return (
-                        <div
-                          key={elementId}
-                          style={{
-                            fontSize: `${element.fontSize}px`,
-                            fontWeight: element.fontWeight,
-                            color: element.fill,
-                            fontFamily: element.fontFamily,
-                            letterSpacing: `${element.letterSpacing}px`,
-                            lineHeight: element.lineHeight,
-                            width: element.width ? `${element.width}px` : 'auto',
-                            textAlign: element.textAlign || 'left',
-                            marginBottom,
-                            whiteSpace: 'pre-wrap',
-                            ...maxLinesStyle
-                          }}
-                        >
-                          {content}
-                        </div>
-                      );
-                    })}
-                </div>
-              </div>
-            </div>
+        <div className="flex items-center gap-4 border-l pl-4 border-slate-200 ml-2">
+          <div className="flex gap-2">
+            {Object.keys(themes).map((t) => (
+              <button key={t} onClick={() => setCurrentTheme(t)} className={`w-6 h-6 rounded-full border ${currentTheme === t ? 'ring-2 ring-indigo-500 ring-offset-2' : 'border-slate-300'} ${themes[t].accent}`} />
+            ))}
           </div>
-        );
-      }
+        </div>
+      </nav>
 
-      return (
-        <div ref={containerRef} className="thumbnail-preview">
-          <div className="thumbnail-canvas" style={{ backgroundColor: template.elements[0]?.fill || '#FFFFFF' }}>
-            <div style={{
-              width: '1920px',
-              height: '1080px',
-              transform: `scale(${thumbnailScale})`,
-              transformOrigin: 'top left',
-              position: 'absolute',
-              top: 0,
-              left: 0
-            }}>
-              {template.elements.slice(0, 15).map((element, idx) => {
-                const elementId = `${element.type}_${idx}`;
+      <main className="flex-1 flex overflow-hidden">
+        <div className="w-64 bg-white border-r border-slate-200 flex flex-col flex-shrink-0">
+          <div className="flex items-center justify-between p-4 pb-3">
+            <h3 className="font-bold text-slate-700 text-sm">슬라이드</h3>
+            <button onClick={() => setShowTemplateModal(true)} className="px-3 py-1.5 text-xs font-bold bg-indigo-100 text-indigo-600 hover:bg-indigo-200 rounded-lg transition">+ 추가</button>
+          </div>
+          <div className="flex-1 overflow-y-auto no-scrollbar px-4 pt-2 pb-4 space-y-3">
+            {slides.map((slide, idx) => {
+              const template = ALL_TEMPLATES[slide.templateId];
+              const isDragging = draggedIndex === idx;
+              const isDropTarget = dropTargetIndex === idx;
+              const showTopIndicator = isDropTarget && draggedIndex !== null && draggedIndex > idx;
+              const showBottomIndicator = isDropTarget && draggedIndex !== null && draggedIndex < idx;
 
-                if (element.type === 'rect') {
-                  return <div key={idx} style={{ position: 'absolute', left: `${element.x}px`, top: `${element.y}px`, width: `${element.width}px`, height: `${element.height}px`, backgroundColor: element.fill, borderRadius: element.cornerRadius ? `${element.cornerRadius}px` : '0', border: element.stroke ? `${element.strokeWidth}px solid ${element.stroke}` : 'none' }} />;
-                }
-                if (element.type === 'text') {
-                  // 페이지 번호 자동 계산 (x:1680, y:990 위치)
-                  const isPageNumber = element.x === 1680 && element.y === 990;
-                  const autoPageNumber = isPageNumber && slideIndex !== undefined ? getPageNumber(slideIndex) : null;
+              return (
+                <div
+                  key={slide.id}
+                  ref={(el) => (thumbnailRefs.current[idx] = el)}
+                  draggable
+                  onDragStart={(e) => handleDragStart(e, idx)}
+                  onDragOver={(e) => handleDragOver(e, idx)}
+                  onDragLeave={handleDragLeave}
+                  onDrop={(e) => handleDrop(e, idx)}
+                  onDragEnd={handleDragEnd}
+                  onClick={() => setCurrentSlideIndex(idx)}
+                  className={`thumbnail p-3 border-2 rounded-lg cursor-grab transition-all ${
+                    idx === currentSlideIndex ? 'active' : 'border-slate-200'
+                  } ${isDragging ? 'dragging' : ''} ${
+                    showTopIndicator ? 'drop-indicator-top' : ''
+                  } ${showBottomIndicator ? 'drop-indicator-bottom' : ''}`}
+                >
+                  <TemplateThumbnail template={template} data={slide.data} slideIndex={idx} slides={slides} />
+                  <div className="text-xs font-semibold text-slate-600 text-center truncate mt-2">{idx + 1}. {template?.category}</div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
 
-                  // 실시간 편집 데이터 반영
-                  let content = element.editable && data && data[elementId] !== undefined ? data[elementId] : element.content;
-                  if (autoPageNumber !== null) {
-                    content = autoPageNumber;
-                  }
+        <div ref={containerRef} className={`flex-1 ${theme.workspaceBg} flex flex-col items-center justify-center relative overflow-hidden p-1 pb-20`}>
+          <div ref={slideRef} className={`${theme.slideBg} shadow-2xl relative overflow-hidden border ${theme.border}`} style={{ width: '1920px', height: '1080px', transform: `scale(${scale})`, flexShrink: 0, transformOrigin: 'center center' }}>
+            {currentTemplate && <SlideCanvas template={currentTemplate} data={currentSlide.data} onUpdate={updateSlideData} onImageUpload={handleImageUpload} currentSlideIndex={currentSlideIndex} slides={slides} />}
+          </div>
 
-                  const isCenterAlignedWithoutWidth = element.textAlign === 'center' && !element.width;
+          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-white/95 backdrop-blur-md p-2 rounded-2xl shadow-[0_10px_50px_rgba(0,0,0,0.1)] border border-white/50 z-[100] w-max max-w-[98vw] overflow-x-auto no-scrollbar">
+            <div className="flex items-center gap-2.5 px-3">
+              <button onClick={() => handleZoom(scale - 0.05)} className="p-1 hover:bg-slate-100 rounded text-slate-500 flex items-center justify-center text-lg font-bold">−</button>
+              <div className="flex items-center gap-2 min-w-[140px]">
+                <input type="range" min="0.1" max="1.5" step="0.05" value={scale} onChange={(e) => handleZoom(parseFloat(e.target.value))} className="flex-1 accent-indigo-600 h-1 cursor-pointer appearance-none bg-slate-200 rounded-full" />
+                <span className="text-[10px] font-black text-slate-500 tabular-nums w-8 text-right">{Math.round(scale * 100)}%</span>
+              </div>
+              <button onClick={() => handleZoom(scale + 0.05)} className="p-1 hover:bg-slate-100 rounded text-slate-500 flex items-center justify-center text-lg font-bold">+</button>
+            </div>
+            <div className="w-px h-6 bg-slate-200 mx-1" />
+            <button onClick={resetSlide} className="px-3 py-2 hover:bg-blue-100 text-blue-600 rounded-lg font-bold text-sm">새로고침</button>
+            <div className="w-px h-6 bg-slate-200 mx-1" />
+            <button onClick={deleteSlide} className="px-3 py-2 hover:bg-red-100 text-red-600 rounded-lg font-bold text-sm">삭제</button>
+            <div className="w-px h-6 bg-slate-200 mx-1" />
+            <button onClick={exportToPDF} className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold shadow-md shadow-emerald-100"><span className="text-[11px] whitespace-nowrap">📥 PDF</span></button>
+          </div>
+        </div>
+      </main>
 
-                  // maxLines 제한을 위한 추가 스타일
-                  const maxLinesStyle = element.maxLines ? {
-                    display: '-webkit-box',
-                    WebkitLineClamp: element.maxLines,
-                    WebkitBoxOrient: 'vertical',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis'
-                  } : {};
-
-                  return (
-                    <div key={idx} style={{
-                      position: 'absolute',
-                      left: isCenterAlignedWithoutWidth ? '50%' : `${element.x}px`,
-                      transform: isCenterAlignedWithoutWidth ? 'translateX(-50%)' : 'none',
-                      top: `${element.y}px`,
-                      fontSize: `${element.fontSize}px`,
-                      fontWeight: element.fontWeight,
-                      color: element.fill,
-                      fontFamily: element.fontFamily,
-                      letterSpacing: element.letterSpacing ? `${element.letterSpacing}px` : 'normal',
-                      opacity: element.opacity || 1,
-                      whiteSpace: 'pre-wrap',
-                      width: element.width ? `${element.width}px` : 'auto',
-                      textAlign: element.textAlign || 'left',
-                      maxWidth: element.width ? `${element.width}px` : 'none',
-                      lineHeight: element.lineHeight || 1.5,
-                      ...maxLinesStyle
-                    }}>{content}</div>
-                  );
-                }
-                if (element.type === 'image') {
-                  // 실시간 이미지 데이터 반영
-                  const imageSrc = element.editable && data && data[elementId] ? data[elementId] : (element.placeholder ? 'https://via.placeholder.com/' + element.width + 'x' + element.height + '/f0f0f0/999999?text=Image' : element.url);
-                  return (
-                    <div key={idx} style={{ position: 'absolute', left: `${element.x}px`, top: `${element.y}px`, width: `${element.width}px`, height: `${element.height}px`, backgroundColor: '#f0f0f0', backgroundImage: imageSrc ? `url(${imageSrc})` : 'none', backgroundSize: 'cover', backgroundPosition: 'center' }} />
-                  );
-                }
-                return null;
+      {showTemplateModal && (
+        <div className="absolute inset-0 bg-slate-900/30 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-4xl overflow-hidden">
+            <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-indigo-50/30">
+              <h3 className="font-bold text-sm uppercase tracking-widest text-indigo-600">템플릿 선택 (총 23개)</h3>
+              <button onClick={() => setShowTemplateModal(false)} className="text-slate-400 hover:text-slate-600 p-1 text-xl">✕</button>
+            </div>
+            <div className="p-6 max-h-[70vh] overflow-y-auto">
+              {orderedCategories.map((category) => {
+                const templates = templatesByCategory[category];
+                return (
+                  <div key={category} className="mb-6">
+                    <h4 className="font-bold text-slate-700 mb-3 text-sm">{category} ({templates.length}개)</h4>
+                    <div className="grid grid-cols-3 gap-3">
+                      {templates.map((template) => (
+                        <button key={template.id} onClick={() => addSlide(template.id)} className="p-4 border-2 border-slate-200 rounded-xl hover:border-indigo-500 hover:shadow-lg text-center group">
+                          <TemplateThumbnail template={template} data={{}} />
+                          <div className="font-semibold text-slate-700 text-xs mt-2">{template.name}</div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                );
               })}
             </div>
           </div>
         </div>
-      );
-    }
+      )}
 
-    ReactDOM.render(<PresentationBuilder />, document.getElementById('root'));
+      {/* PDF 업로드 모달 */}
+      {showPdfUpload && (
+        <div className="absolute inset-0 bg-slate-900/30 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden">
+            <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-emerald-50/30">
+              <h3 className="font-bold text-sm uppercase tracking-widest text-emerald-600">PDF 업로드</h3>
+              <button onClick={() => setShowPdfUpload(false)} className="text-slate-400 hover:text-slate-600 p-1 text-xl">✕</button>
+            </div>
+            <div className="p-6">
+              <p className="text-sm text-slate-600 mb-4">소개서 PDF 파일을 업로드하면 내용을 분석하여 자동으로 슬라이드에 배치합니다.</p>
+              <input
+                type="file"
+                accept="application/pdf"
+                onChange={(e) => e.target.files[0] && handlePdfUpload(e.target.files[0])}
+                className="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 cursor-pointer"
+              />
+              <p className="text-xs text-slate-400 mt-2">* PDF 파일 내 텍스트를 추출하여 슬라이드 내용을 자동으로 채웁니다.</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {statusMessage && <div className="absolute top-16 left-1/2 -translate-x-1/2 bg-slate-900/90 text-white px-5 py-2 rounded-full shadow-2xl flex items-center gap-2.5 z-[300]"><span className="text-xs font-medium">{statusMessage}</span></div>}
+    </div>
+  );
+}
+
+ReactDOM.render(<PresentationBuilder />, document.getElementById('root'));
