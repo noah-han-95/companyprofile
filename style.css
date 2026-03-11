@@ -1,0 +1,134 @@
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+    * { font-family: 'Pretendard', 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif; }
+
+    .slide-canvas { box-shadow: 0 20px 60px rgba(0,0,0,0.15); }
+
+    .thumbnail { }
+    .thumbnail:hover { box-shadow: 0 8px 20px rgba(0,0,0,0.2); }
+    .thumbnail.active { border: 3px solid #4F46E5; box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.2); }
+
+    .editable-field {
+      cursor: text;
+      padding: 4px;
+      border-radius: 4px;
+      outline: none;
+    }
+    .editable-field:hover {
+      background: rgba(79, 70, 229, 0.05);
+      outline: 2px dashed #4F46E5;
+      outline-offset: 2px;
+    }
+    .editable-field:focus {
+      outline: 2px solid #4F46E5;
+      outline-offset: 2px;
+      background: rgba(79, 70, 229, 0.1);
+    }
+
+    .editable-image {
+      cursor: pointer;
+      position: relative;
+    }
+    .editable-image:hover {
+      outline: 3px dashed #10B981;
+      outline-offset: 4px;
+    }
+    .editable-image:hover::after {
+      content: '🖼️ 클릭하여 이미지 변경';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(0,0,0,0.8);
+      color: white;
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      pointer-events: none;
+      white-space: nowrap;
+    }
+
+    /* 섹션 삭제 버튼 스타일 */
+    .delete-section-wrapper:hover .delete-section-btn {
+      opacity: 1 !important;
+    }
+
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+    .thumbnail-preview {
+      width: 100%;
+      aspect-ratio: 16/9;
+      background: white;
+      border-radius: 6px;
+      overflow: hidden;
+      position: relative;
+      border: 1px solid #e2e8f0;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    }
+
+    .thumbnail-canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    .dragging {
+      opacity: 0.4;
+      cursor: grabbing;
+      transform: scale(0.98);
+      transition: opacity 0.2s, transform 0.2s;
+    }
+
+    .drop-indicator-top {
+      position: relative;
+    }
+
+    .drop-indicator-top::before {
+      content: '';
+      position: absolute;
+      top: -8px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: calc(100% - 8px);
+      height: 4px;
+      background: linear-gradient(90deg, #4F46E5, #7C3AED);
+      border-radius: 2px;
+      box-shadow: 0 0 8px rgba(79, 70, 229, 0.6);
+      z-index: 10;
+      animation: pulse-line 1s ease-in-out infinite;
+    }
+
+    .drop-indicator-bottom {
+      position: relative;
+    }
+
+    .drop-indicator-bottom::after {
+      content: '';
+      position: absolute;
+      bottom: -8px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: calc(100% - 8px);
+      height: 4px;
+      background: linear-gradient(90deg, #4F46E5, #7C3AED);
+      border-radius: 2px;
+      box-shadow: 0 0 8px rgba(79, 70, 229, 0.6);
+      z-index: 10;
+      animation: pulse-line 1s ease-in-out infinite;
+    }
+
+    @keyframes pulse-line {
+      0%, 100% {
+        opacity: 1;
+        box-shadow: 0 0 8px rgba(79, 70, 229, 0.6);
+      }
+      50% {
+        opacity: 0.7;
+        box-shadow: 0 0 12px rgba(79, 70, 229, 0.8);
+      }
+    }
