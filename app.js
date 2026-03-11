@@ -356,6 +356,25 @@ function PresentationBuilder() {
         }
         return;
       }
+
+      // ArrowLeft / ArrowRight: 같은 카테고리 내 Type 전환
+      if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+        const currentSlide = slides[currentSlideIndex];
+        const currentTpl = ALL_TEMPLATES[currentSlide?.templateId];
+        if (!currentTpl) return;
+        const categoryTemplates = Object.values(ALL_TEMPLATES).filter(t => t.category === currentTpl.category);
+        if (categoryTemplates.length <= 1) return;
+        const currentIdx = categoryTemplates.findIndex(t => t.id === currentTpl.id);
+        let nextIdx;
+        if (e.key === 'ArrowLeft') {
+          nextIdx = currentIdx <= 0 ? categoryTemplates.length - 1 : currentIdx - 1;
+        } else {
+          nextIdx = currentIdx >= categoryTemplates.length - 1 ? 0 : currentIdx + 1;
+        }
+        e.preventDefault();
+        replaceCurrentSlide(categoryTemplates[nextIdx].id);
+        return;
+      }
     };
 
     window.addEventListener('keydown', handleKeyDown);

@@ -477,16 +477,16 @@ var TEMPLATES = {
     penId: 'wY8Zs',
     elements: [
       { type: 'rect', x: 0, y: 0, width: 1920, height: 1080, fill: '#333333' },
-      { type: 'text', x: 933, y: 283, content: '1', fontSize: 32, fontWeight: '700', fill: '#000000', fontFamily: 'Pretendard', editable: true },
-      { type: 'text', x: 1021, y: 283, content: '사용자 경험 개선', fontSize: 48, fontWeight: '700', fill: '#FFFFFF', fontFamily: 'Pretendard', letterSpacing: -0.48, lineHeight: 1.3, editable: true },
-      { type: 'text', x: 933, y: 395, content: '2', fontSize: 32, fontWeight: '700', fill: '#000000', fontFamily: 'Pretendard', opacity: 0.3, editable: true },
-      { type: 'text', x: 1021, y: 395, content: '데이터 분석과 인사이트', fontSize: 48, fontWeight: '700', fill: '#FFFFFF', fontFamily: 'Pretendard', letterSpacing: -0.48, lineHeight: 1.3, opacity: 0.3, editable: true },
-      { type: 'text', x: 933, y: 507, content: '3', fontSize: 32, fontWeight: '700', fill: '#000000', fontFamily: 'Pretendard', opacity: 0.3, editable: true },
-      { type: 'text', x: 1021, y: 507, content: '맞춤형 솔루션 제공', fontSize: 48, fontWeight: '700', fill: '#FFFFFF', fontFamily: 'Pretendard', letterSpacing: -0.48, lineHeight: 1.3, opacity: 0.3, editable: true },
-      { type: 'text', x: 933, y: 619, content: '4', fontSize: 32, fontWeight: '700', fill: '#000000', fontFamily: 'Pretendard', opacity: 0.3, editable: true },
-      { type: 'text', x: 1021, y: 619, content: '효율적인 워크플로우', fontSize: 48, fontWeight: '700', fill: '#FFFFFF', fontFamily: 'Pretendard', letterSpacing: -0.48, lineHeight: 1.3, opacity: 0.3, editable: true },
-      { type: 'text', x: 933, y: 731, content: '5', fontSize: 32, fontWeight: '700', fill: '#000000', fontFamily: 'Pretendard', opacity: 0.3, editable: true },
-      { type: 'text', x: 1021, y: 731, content: '실시간 성과 모니터링', fontSize: 48, fontWeight: '700', fill: '#FFFFFF', fontFamily: 'Pretendard', letterSpacing: -0.48, lineHeight: 1.3, opacity: 0.3, editable: true },
+      { type: 'text', x: 933, y: 283, content: '1', fontSize: 32, fontWeight: '700', fill: '#FFFFFF', fontFamily: 'Pretendard', editable: true },
+      { type: 'text', x: 1021, y: 283, content: '타이틀 텍스트', fontSize: 48, fontWeight: '700', fill: '#FFFFFF', fontFamily: 'Pretendard', letterSpacing: -0.48, lineHeight: 1.3, editable: true },
+      { type: 'text', x: 933, y: 395, content: '2', fontSize: 32, fontWeight: '700', fill: '#FFFFFF', fontFamily: 'Pretendard', opacity: 0.3, editable: true },
+      { type: 'text', x: 1021, y: 395, content: '타이틀 텍스트', fontSize: 48, fontWeight: '700', fill: '#FFFFFF', fontFamily: 'Pretendard', letterSpacing: -0.48, lineHeight: 1.3, opacity: 0.3, editable: true },
+      { type: 'text', x: 933, y: 507, content: '3', fontSize: 32, fontWeight: '700', fill: '#FFFFFF', fontFamily: 'Pretendard', opacity: 0.3, editable: true },
+      { type: 'text', x: 1021, y: 507, content: '타이틀 텍스트', fontSize: 48, fontWeight: '700', fill: '#FFFFFF', fontFamily: 'Pretendard', letterSpacing: -0.48, lineHeight: 1.3, opacity: 0.3, editable: true },
+      { type: 'text', x: 933, y: 619, content: '4', fontSize: 32, fontWeight: '700', fill: '#FFFFFF', fontFamily: 'Pretendard', opacity: 0.3, editable: true },
+      { type: 'text', x: 1021, y: 619, content: '타이틀 텍스트', fontSize: 48, fontWeight: '700', fill: '#FFFFFF', fontFamily: 'Pretendard', letterSpacing: -0.48, lineHeight: 1.3, opacity: 0.3, editable: true },
+      { type: 'text', x: 933, y: 731, content: '5', fontSize: 32, fontWeight: '700', fill: '#FFFFFF', fontFamily: 'Pretendard', opacity: 0.3, editable: true },
+      { type: 'text', x: 1021, y: 731, content: '타이틀 텍스트', fontSize: 48, fontWeight: '700', fill: '#FFFFFF', fontFamily: 'Pretendard', letterSpacing: -0.48, lineHeight: 1.3, opacity: 0.3, editable: true },
       { type: 'image', x: 120, y: 991, width: 118, height: 20, url: 'assets/icons/yeogi-logo.svg' },
       { type: 'text', x: 260, y: 990, content: '2026 © GC Company Corp. All rights reserved.', fontSize: 20, fontWeight: '500', fill: '#BBBBBB', fontFamily: 'Pretendard', letterSpacing: -0.2, lineHeight: 1.4 },
       { type: 'text', x: 1680, y: 990, content: 'P1', fontSize: 20, fontWeight: '500', fill: '#999999', fontFamily: 'Pretendard', letterSpacing: -0.2, lineHeight: 1.4, editable: true, textAlign: 'right', width: 120 }
@@ -504,32 +504,32 @@ var TEMPLATES = {
       { type: 'text', x: 120, y: 100, content: '목차', fontSize: 90, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.9, lineHeight: 1.3, editable: true },
       // Item 01 (y:384)
       { type: 'text', x: 800, y: 384, content: '01', fontSize: 32, fontWeight: '700', fill: '#666666', fontFamily: 'Pretendard', letterSpacing: -0.32, editable: true },
-      { type: 'text', x: 868, y: 384, content: '서비스 소개', fontSize: 32, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.3, editable: true },
-      { type: 'text', x: 1680, y: 384, content: 'P3', fontSize: 32, fontWeight: '500', fill: '#BBBBBB', fontFamily: 'Pretendard', letterSpacing: -0.32, textAlign: 'right', width: 120, editable: true },
+      { type: 'text', x: 868, y: 384, content: '타이틀 텍스트', fontSize: 32, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.3, editable: true },
+      { type: 'text', x: 1680, y: 384, content: 'P1', fontSize: 32, fontWeight: '500', fill: '#BBBBBB', fontFamily: 'Pretendard', letterSpacing: -0.32, textAlign: 'right', width: 120, editable: true },
       // Item 02 (y:468)
       { type: 'text', x: 800, y: 468, content: '02', fontSize: 32, fontWeight: '700', fill: '#666666', fontFamily: 'Pretendard', letterSpacing: -0.32, editable: true },
-      { type: 'text', x: 868, y: 468, content: '주요 기능', fontSize: 32, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.3, editable: true },
-      { type: 'text', x: 1680, y: 468, content: 'P8', fontSize: 32, fontWeight: '500', fill: '#BBBBBB', fontFamily: 'Pretendard', letterSpacing: -0.32, textAlign: 'right', width: 120, editable: true },
+      { type: 'text', x: 868, y: 468, content: '타이틀 텍스트', fontSize: 32, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.3, editable: true },
+      { type: 'text', x: 1680, y: 468, content: 'P5', fontSize: 32, fontWeight: '500', fill: '#BBBBBB', fontFamily: 'Pretendard', letterSpacing: -0.32, textAlign: 'right', width: 120, editable: true },
       // Item 03 (y:552)
       { type: 'text', x: 800, y: 552, content: '03', fontSize: 32, fontWeight: '700', fill: '#666666', fontFamily: 'Pretendard', letterSpacing: -0.32, editable: true },
-      { type: 'text', x: 868, y: 552, content: '이용 요금 및 절차', fontSize: 32, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.3, editable: true },
-      { type: 'text', x: 1680, y: 552, content: 'P14', fontSize: 32, fontWeight: '500', fill: '#BBBBBB', fontFamily: 'Pretendard', letterSpacing: -0.32, textAlign: 'right', width: 120, editable: true },
+      { type: 'text', x: 868, y: 552, content: '타이틀 텍스트', fontSize: 32, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.3, editable: true },
+      { type: 'text', x: 1680, y: 552, content: 'P10', fontSize: 32, fontWeight: '500', fill: '#BBBBBB', fontFamily: 'Pretendard', letterSpacing: -0.32, textAlign: 'right', width: 120, editable: true },
       // Item 04 (y:636)
       { type: 'text', x: 800, y: 636, content: '04', fontSize: 32, fontWeight: '700', fill: '#666666', fontFamily: 'Pretendard', letterSpacing: -0.32, editable: true },
-      { type: 'text', x: 868, y: 636, content: '자주 묻는 질문', fontSize: 32, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.3, editable: true },
-      { type: 'text', x: 1680, y: 636, content: 'P21', fontSize: 32, fontWeight: '500', fill: '#BBBBBB', fontFamily: 'Pretendard', letterSpacing: -0.32, textAlign: 'right', width: 120, editable: true },
+      { type: 'text', x: 868, y: 636, content: '타이틀 텍스트', fontSize: 32, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.3, editable: true },
+      { type: 'text', x: 1680, y: 636, content: 'P15', fontSize: 32, fontWeight: '500', fill: '#BBBBBB', fontFamily: 'Pretendard', letterSpacing: -0.32, textAlign: 'right', width: 120, editable: true },
       // Item 05 (y:720)
       { type: 'text', x: 800, y: 720, content: '05', fontSize: 32, fontWeight: '700', fill: '#666666', fontFamily: 'Pretendard', letterSpacing: -0.32, editable: true },
-      { type: 'text', x: 868, y: 720, content: '추가 서비스', fontSize: 32, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.3, editable: true },
-      { type: 'text', x: 1680, y: 720, content: 'P25', fontSize: 32, fontWeight: '500', fill: '#BBBBBB', fontFamily: 'Pretendard', letterSpacing: -0.32, textAlign: 'right', width: 120, editable: true },
+      { type: 'text', x: 868, y: 720, content: '타이틀 텍스트', fontSize: 32, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.3, editable: true },
+      { type: 'text', x: 1680, y: 720, content: 'P20', fontSize: 32, fontWeight: '500', fill: '#BBBBBB', fontFamily: 'Pretendard', letterSpacing: -0.32, textAlign: 'right', width: 120, editable: true },
       // Item 06 (y:804)
       { type: 'text', x: 800, y: 804, content: '06', fontSize: 32, fontWeight: '700', fill: '#666666', fontFamily: 'Pretendard', letterSpacing: -0.32, editable: true },
-      { type: 'text', x: 868, y: 804, content: '고객 후기', fontSize: 32, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.3, editable: true },
-      { type: 'text', x: 1680, y: 804, content: 'P30', fontSize: 32, fontWeight: '500', fill: '#BBBBBB', fontFamily: 'Pretendard', letterSpacing: -0.32, textAlign: 'right', width: 120, editable: true },
+      { type: 'text', x: 868, y: 804, content: '타이틀 텍스트', fontSize: 32, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.3, editable: true },
+      { type: 'text', x: 1680, y: 804, content: 'P25', fontSize: 32, fontWeight: '500', fill: '#BBBBBB', fontFamily: 'Pretendard', letterSpacing: -0.32, textAlign: 'right', width: 120, editable: true },
       // Item 07 (y:888)
       { type: 'text', x: 800, y: 888, content: '07', fontSize: 32, fontWeight: '700', fill: '#666666', fontFamily: 'Pretendard', letterSpacing: -0.32, editable: true },
-      { type: 'text', x: 868, y: 888, content: '문의하기', fontSize: 32, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.3, editable: true },
-      { type: 'text', x: 1680, y: 888, content: 'P35', fontSize: 32, fontWeight: '500', fill: '#BBBBBB', fontFamily: 'Pretendard', letterSpacing: -0.32, textAlign: 'right', width: 120, editable: true },
+      { type: 'text', x: 868, y: 888, content: '타이틀 텍스트', fontSize: 32, fontWeight: '700', fill: '#333333', fontFamily: 'Pretendard', letterSpacing: -0.32, lineHeight: 1.3, editable: true },
+      { type: 'text', x: 1680, y: 888, content: 'P30', fontSize: 32, fontWeight: '500', fill: '#BBBBBB', fontFamily: 'Pretendard', letterSpacing: -0.32, textAlign: 'right', width: 120, editable: true },
       // Footer
       { type: 'image', x: 120, y: 991, width: 118, height: 20, url: 'assets/icons/yeogi-logo.svg' },
       { type: 'text', x: 260, y: 990, content: '2026 © GC Company Corp. All rights reserved.', fontSize: 20, fontWeight: '500', fill: '#BBBBBB', fontFamily: 'Pretendard', letterSpacing: -0.2, lineHeight: 1.4 },
@@ -583,7 +583,7 @@ var TEMPLATES = {
     elements: [
       { type: 'rect', x: 0, y: 0, width: 1920, height: 1080, fill: '#FFFFFF' },
       { type: 'image', x: 683, y: 450, width: 554, height: 94, url: 'assets/icons/yeogi-logo.svg' },
-      { type: 'text', x: 360, y: 912, content: '최대 1줄 이내로 작성하는 것을 권장합니다.', fontSize: 48, fontWeight: '700', fill: '#BBBBBB', fontFamily: 'Pretendard', letterSpacing: -0.48, lineHeight: 1.3, width: 1200, textAlign: 'center', editable: true, maxLines: 1 }
+      { type: 'text', x: 360, y: 912, content: '최대 1줄 이내로 작성하는 것을 권장합니다.', fontSize: 48, fontWeight: '500', fill: '#BBBBBB', fontFamily: 'Pretendard', letterSpacing: -0.48, lineHeight: 1.3, width: 1200, textAlign: 'center', editable: true, maxLines: 1 }
     ]
   },
   finalcover02: {

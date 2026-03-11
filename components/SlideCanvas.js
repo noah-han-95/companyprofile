@@ -4,6 +4,29 @@ function SlideCanvas({ template, data, onUpdate, onImageUpload, currentSlideInde
   const [, forceRender] = useState(0);
   const [undoStack, setUndoStack] = useState([]);
 
+  // 이미지 드래그 상태
+  const [isDraggingImg, setIsDraggingImg] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const [draggingImageKey, setDraggingImageKey] = useState(null);
+
+  // Index Type 01 TOC 상태
+  const [tocItems, setTocItems] = useState(template.tocItems || []);
+  const [tocDraggedIndex, setTocDraggedIndex] = useState(null);
+
+  // Section Cover Type 03 행 상태
+  const [section03Rows, setSection03Rows] = useState(() => {
+    if (template.id !== 'section03') return [];
+    if (data.rows) return data.rows;
+    return [
+      { id: 'r1', title: '타이틀 텍스트', highlighted: true },
+      { id: 'r2', title: '타이틀 텍스트', highlighted: false },
+      { id: 'r3', title: '타이틀 텍스트', highlighted: false },
+      { id: 'r4', title: '타이틀 텍스트', highlighted: false },
+      { id: 'r5', title: '타이틀 텍스트', highlighted: false }
+    ];
+  });
+
   // 페이지 번호 계산 함수
   const getPageNumber = (slideIndex) => {
     if (!slides || !slides[slideIndex]) return '';
@@ -87,21 +110,47 @@ function SlideCanvas({ template, data, onUpdate, onImageUpload, currentSlideInde
     return [
       {
         id: 'section_1',
-        title: '지면 광고',
-        subtitles: ['광고 노출 지면', '상품 개요', '상품 세부 소개', '광고 효과 분석']
+        title: '타이틀 텍스트',
+        subtitles: ['서브 타이틀 텍스트', '서브 타이틀 텍스트', '서브 타이틀 텍스트', '서브 타이틀 텍스트']
       },
       {
         id: 'section_2',
-        title: '부속 상품 (노출형)',
-        subtitles: ['슈퍼셀렉트 퍼스트', '기획전 (숙박 / 대실)', '검색 · 주변 광고', '프리미엄 배너 광고']
+        title: '타이틀 텍스트',
+        subtitles: ['서브 타이틀 텍스트', '서브 타이틀 텍스트', '서브 타이틀 텍스트', '서브 타이틀 텍스트']
       },
       {
         id: 'section_3',
-        title: '부속 상품 (할인형)',
-        subtitles: ['플러스 쿠폰', '부스트 쿠폰', '선불형 쿠폰', '후불형 쿠폰']
+        title: '타이틀 텍스트',
+        subtitles: ['서브 타이틀 텍스트', '서브 타이틀 텍스트', '서브 타이틀 텍스트', '서브 타이틀 텍스트']
       }
     ];
   });
+
+  // template이 index02로 전환될 때 sections 재초기화
+  useEffect(() => {
+    if (template.id === 'index02' && index02Sections.length === 0) {
+      const defaultSections = data.sections || [
+        { id: 'section_1', title: '타이틀 텍스트', subtitles: ['서브 타이틀 텍스트', '서브 타이틀 텍스트', '서브 타이틀 텍스트', '서브 타이틀 텍스트'] },
+        { id: 'section_2', title: '타이틀 텍스트', subtitles: ['서브 타이틀 텍스트', '서브 타이틀 텍스트', '서브 타이틀 텍스트', '서브 타이틀 텍스트'] },
+        { id: 'section_3', title: '타이틀 텍스트', subtitles: ['서브 타이틀 텍스트', '서브 타이틀 텍스트', '서브 타이틀 텍스트', '서브 타이틀 텍스트'] }
+      ];
+      setIndex02Sections(defaultSections);
+    }
+  }, [template.id]);
+
+  // template이 section03으로 전환될 때 rows 재초기화
+  useEffect(() => {
+    if (template.id === 'section03' && section03Rows.length === 0) {
+      const defaultRows = data.rows || [
+        { id: 'r1', title: '타이틀 텍스트', highlighted: true },
+        { id: 'r2', title: '타이틀 텍스트', highlighted: false },
+        { id: 'r3', title: '타이틀 텍스트', highlighted: false },
+        { id: 'r4', title: '타이틀 텍스트', highlighted: false },
+        { id: 'r5', title: '타이틀 텍스트', highlighted: false }
+      ];
+      setSection03Rows(defaultRows);
+    }
+  }, [template.id]);
 
   // Index Type 02 (Dynamic Sections) 전용 렌더링
   if (template.id === 'index02') {
@@ -117,7 +166,7 @@ function SlideCanvas({ template, data, onUpdate, onImageUpload, currentSlideInde
       const newSection = {
         id: `section_${Date.now()}`,
         title: '타이틀 텍스트',
-        subtitles: ['보조 텍스트', '보조 텍스트', '보조 텍스트', '보조 텍스트']
+        subtitles: ['서브 타이틀 텍스트', '서브 타이틀 텍스트', '서브 타이틀 텍스트', '서브 타이틀 텍스트']
       };
 
       setIndex02Sections([...sections, newSection]);
@@ -184,7 +233,7 @@ function SlideCanvas({ template, data, onUpdate, onImageUpload, currentSlideInde
             alert('최대 4개의 보조 타이틀만 추가할 수 있습니다.');
             return s;
           }
-          return { ...s, subtitles: [...s.subtitles, '새 보조 타이틀'] };
+          return { ...s, subtitles: [...s.subtitles, '서브 타이틀 텍스트'] };
         }
         return s;
       });
@@ -424,7 +473,8 @@ function SlideCanvas({ template, data, onUpdate, onImageUpload, currentSlideInde
         </div>
 
         {/* Footer - 페이지 번호 */}
-        <div style={{
+        <div className="editable-field" contentEditable={false}
+          style={{
           position: 'absolute',
           left: '1680px',
           top: '990px',
@@ -435,7 +485,8 @@ function SlideCanvas({ template, data, onUpdate, onImageUpload, currentSlideInde
           letterSpacing: '-0.2px',
           lineHeight: 1.4,
           textAlign: 'right',
-          width: '120px'
+          width: '120px',
+          cursor: 'default'
         }}>
           {getPageNumber(currentSlideIndex)}
         </div>
@@ -445,13 +496,10 @@ function SlideCanvas({ template, data, onUpdate, onImageUpload, currentSlideInde
 
   // Index Type 01 (Draggable TOC) 전용 렌더링
   if (template.id === 'index01' && template.isDraggable) {
-    // TOC 항목 상태 관리
-    const [tocItems, setTocItems] = useState(template.tocItems || []);
-    const [draggedIndex, setDraggedIndex] = useState(null);
 
     // 드래그 시작
     const handleDragStart = (index) => {
-      setDraggedIndex(index);
+      setTocDraggedIndex(index);
     };
 
     // 드래그 중
@@ -462,14 +510,14 @@ function SlideCanvas({ template, data, onUpdate, onImageUpload, currentSlideInde
     // 드롭
     const handleDrop = (e, dropIndex) => {
       e.preventDefault();
-      if (draggedIndex === null || draggedIndex === dropIndex) return;
+      if (tocDraggedIndex === null || tocDraggedIndex === dropIndex) return;
 
       const newItems = [...tocItems];
-      const [removed] = newItems.splice(draggedIndex, 1);
+      const [removed] = newItems.splice(tocDraggedIndex, 1);
       newItems.splice(dropIndex, 0, removed);
 
       setTocItems(newItems);
-      setDraggedIndex(null);
+      setTocDraggedIndex(null);
     };
 
     // 항목 삭제
@@ -527,12 +575,12 @@ function SlideCanvas({ template, data, onUpdate, onImageUpload, currentSlideInde
           {tocItems.map((item, index) => (
             <div
               key={item.id}
-              className={`toc-row ${draggedIndex === index ? 'dragging' : ''}`}
+              className={`toc-row ${tocDraggedIndex === index ? 'dragging' : ''}`}
               draggable
               onDragStart={() => handleDragStart(index)}
               onDragOver={(e) => handleDragOver(e, index)}
               onDrop={(e) => handleDrop(e, index)}
-              onDragEnd={() => setDraggedIndex(null)}
+              onDragEnd={() => setTocDraggedIndex(null)}
             >
               {/* 드래그 핸들 */}
               <div className="drag-handle">
@@ -997,7 +1045,8 @@ function SlideCanvas({ template, data, onUpdate, onImageUpload, currentSlideInde
         <div style={{ position: 'absolute', left: '260px', top: '990px', fontSize: '20px', fontWeight: '500', color: '#BBBBBB', fontFamily: 'Pretendard', letterSpacing: '-0.2px', lineHeight: 1.4 }}>
           2026 © GC Company Corp. All rights reserved.
         </div>
-        <div style={{ position: 'absolute', left: '1680px', top: '990px', fontSize: '20px', fontWeight: '500', color: '#999999', fontFamily: 'Pretendard', letterSpacing: '-0.2px', lineHeight: 1.4, textAlign: 'right', width: '120px' }}>
+        <div className="editable-field" contentEditable={false}
+          style={{ position: 'absolute', left: '1680px', top: '990px', fontSize: '20px', fontWeight: '500', color: '#999999', fontFamily: 'Pretendard', letterSpacing: '-0.2px', lineHeight: 1.4, textAlign: 'right', width: '120px', cursor: 'default' }}>
           {getPageNumber(currentSlideIndex)}
         </div>
       </div>
@@ -1006,9 +1055,112 @@ function SlideCanvas({ template, data, onUpdate, onImageUpload, currentSlideInde
 
   // Core Value Type 01 전용 렌더링
   if (template.id === 'corevalue01') {
+    const leftImageSrc = data['image_left'];
+    const imgTransform = data['image_left_transform'] || { x: 0, y: 0, scale: 1 };
+
+    const handleImgMouseDown = (e) => {
+      if (!leftImageSrc) return;
+      e.preventDefault();
+      e.stopPropagation();
+      setIsDraggingImg(true);
+      setDragStart({ x: e.clientX, y: e.clientY });
+      setDragOffset({ x: imgTransform.x, y: imgTransform.y });
+    };
+
+    const handleImgMouseMove = (e) => {
+      if (!isDraggingImg) return;
+      // slideRef의 scale을 고려하여 delta 보정
+      const slideEl = e.currentTarget.closest('.w-full.h-full');
+      const rect = slideEl?.getBoundingClientRect();
+      const currentScale = rect ? rect.width / 1920 : 1;
+      const dx = (e.clientX - dragStart.x) / currentScale;
+      const dy = (e.clientY - dragStart.y) / currentScale;
+      onUpdate('image_left_transform', { ...imgTransform, x: dragOffset.x + dx, y: dragOffset.y + dy });
+    };
+
+    const handleImgMouseUp = () => {
+      setIsDraggingImg(false);
+    };
+
+    const handleImgWheel = (e) => {
+      if (!leftImageSrc) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const delta = e.deltaY > 0 ? -0.05 : 0.05;
+      const newScale = Math.max(0.5, Math.min(3, imgTransform.scale + delta));
+      onUpdate('image_left_transform', { ...imgTransform, scale: newScale });
+    };
+
     return (
       <div className="w-full h-full relative" style={{ backgroundColor: template.elements[0]?.fill || '#FFFFFF' }}>
-        {/* 배경 */}
+        {/* 좌측 풀 이미지 영역 */}
+        <div
+          style={{
+            position: 'absolute', left: '0', top: '0',
+            width: '960px', height: '1080px',
+            backgroundColor: leftImageSrc ? 'transparent' : '#F0F0F0',
+            overflow: 'hidden', cursor: leftImageSrc ? (isDraggingImg ? 'grabbing' : 'grab') : 'pointer'
+          }}
+          onClick={() => !leftImageSrc && handleImageClick('image_left')}
+          onMouseDown={leftImageSrc ? handleImgMouseDown : undefined}
+          onMouseMove={leftImageSrc ? handleImgMouseMove : undefined}
+          onMouseUp={leftImageSrc ? handleImgMouseUp : undefined}
+          onMouseLeave={leftImageSrc ? handleImgMouseUp : undefined}
+          onWheel={leftImageSrc ? handleImgWheel : undefined}
+        >
+          {leftImageSrc ? (
+            <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+              <img src={leftImageSrc} alt="" style={{
+                position: 'absolute',
+                left: '50%', top: '50%',
+                transform: `translate(calc(-50% + ${imgTransform.x}px), calc(-50% + ${imgTransform.y}px)) scale(${imgTransform.scale})`,
+                width: '100%', height: '100%',
+                objectFit: 'contain',
+                userSelect: 'none', pointerEvents: 'none'
+              }} />
+              {/* 이미지 변경 버튼 */}
+              <button
+                onClick={(e) => { e.stopPropagation(); handleImageClick('image_left'); }}
+                style={{
+                  position: 'absolute', bottom: '20px', left: '50%', transform: 'translateX(-50%)',
+                  padding: '10px 24px', borderRadius: '8px',
+                  backgroundColor: 'rgba(0,0,0,0.6)', color: '#FFFFFF', border: 'none',
+                  cursor: 'pointer', fontSize: '16px', fontWeight: '600', fontFamily: 'Pretendard',
+                  opacity: 0, transition: 'opacity 0.2s ease', zIndex: 10,
+                  pointerEvents: 'auto'
+                }}
+                className="cv01-img-change-btn">
+                이미지 변경
+              </button>
+              {/* 조작 힌트 */}
+              <div style={{
+                position: 'absolute', top: '20px', left: '50%', transform: 'translateX(-50%)',
+                padding: '6px 16px', borderRadius: '6px',
+                backgroundColor: 'rgba(0,0,0,0.5)', color: '#FFFFFF',
+                fontSize: '14px', fontWeight: '500', fontFamily: 'Pretendard',
+                opacity: 0, transition: 'opacity 0.2s ease', pointerEvents: 'none',
+                whiteSpace: 'nowrap'
+              }} className="cv01-img-hint">
+                드래그: 위치 이동 · 스크롤: 크기 조절
+              </div>
+            </div>
+          ) : (
+            <div style={{
+              width: '100%', height: '100%',
+              display: 'flex', flexDirection: 'column',
+              alignItems: 'center', justifyContent: 'center', gap: '16px'
+            }}>
+              <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#BBBBBB" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                <circle cx="8.5" cy="8.5" r="1.5"/>
+                <polyline points="21 15 16 10 5 21"/>
+              </svg>
+              <span style={{ fontSize: '28px', fontWeight: '600', color: '#BBBBBB', fontFamily: 'Pretendard' }}>
+                클릭하여 이미지 추가
+              </span>
+            </div>
+          )}
+        </div>
 
         {/* 상단 영역 + 컨테이너를 flexbox로 */}
         <div style={{
@@ -1239,12 +1391,12 @@ function SlideCanvas({ template, data, onUpdate, onImageUpload, currentSlideInde
         </div>
 
         {/* 푸터 - 로고 */}
-        <div className="absolute" style={{ left: '120px', top: '991px', width: '118px', height: '20px' }}>
+        <div className="absolute" style={{ left: '1050px', top: '991px', width: '118px', height: '20px', zIndex: 5 }}>
           <img src={template.elements[11].url} alt="" className="w-full h-full object-contain" />
         </div>
 
         {/* 푸터 - 카피라이트 */}
-        <div className="absolute whitespace-pre-wrap" style={{ left: '260px', top: '990px', fontSize: '20px', fontWeight: '500', color: '#BBBBBB', fontFamily: 'Pretendard', letterSpacing: '-0.2px', lineHeight: 1.4 }}>
+        <div className="absolute whitespace-pre-wrap" style={{ left: '1190px', top: '990px', fontSize: '20px', fontWeight: '500', color: '#BBBBBB', fontFamily: 'Pretendard', letterSpacing: '-0.2px', lineHeight: 1.4, zIndex: 5 }}>
           {template.elements[12].content}
         </div>
 
@@ -1252,7 +1404,944 @@ function SlideCanvas({ template, data, onUpdate, onImageUpload, currentSlideInde
         <div
           className="editable-field absolute"
           contentEditable={false}
-          style={{ left: '1680px', top: '990px', fontSize: '20px', fontWeight: '500', color: '#999999', fontFamily: 'Pretendard', letterSpacing: '-0.2px', lineHeight: 1.4, textAlign: 'right', width: '120px', cursor: 'default' }}>
+          style={{ left: '1680px', top: '990px', fontSize: '20px', fontWeight: '500', color: '#999999', fontFamily: 'Pretendard', letterSpacing: '-0.2px', lineHeight: 1.4, textAlign: 'right', width: '120px', cursor: 'default', zIndex: 5 }}>
+          {getPageNumber(currentSlideIndex)}
+        </div>
+      </div>
+    );
+  }
+
+  // ─── Core Value Type 02 전용 렌더링 ───
+  if (template.id === 'corevalue02') {
+    const containerImageSrc = data['image_container'];
+    const containerImgTransform = data['image_container_transform'] || { x: 0, y: 0, scale: 1 };
+
+    const handleContainerImgMouseDown = (e) => {
+      if (!containerImageSrc) return;
+      e.preventDefault();
+      e.stopPropagation();
+      setIsDraggingImg(true);
+      setDragStart({ x: e.clientX, y: e.clientY });
+      setDragOffset({ x: containerImgTransform.x, y: containerImgTransform.y });
+    };
+
+    const handleContainerImgMouseMove = (e) => {
+      if (!isDraggingImg) return;
+      const slideEl = e.currentTarget.closest('.w-full.h-full');
+      const rect = slideEl?.getBoundingClientRect();
+      const currentScale = rect ? rect.width / 1920 : 1;
+      const dx = (e.clientX - dragStart.x) / currentScale;
+      const dy = (e.clientY - dragStart.y) / currentScale;
+      onUpdate('image_container_transform', { ...containerImgTransform, x: dragOffset.x + dx, y: dragOffset.y + dy });
+    };
+
+    const handleContainerImgMouseUp = () => {
+      setIsDraggingImg(false);
+    };
+
+    const handleContainerImgWheel = (e) => {
+      if (!containerImageSrc) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const delta = e.deltaY > 0 ? -0.05 : 0.05;
+      const newScale = Math.max(0.5, Math.min(3, containerImgTransform.scale + delta));
+      onUpdate('image_container_transform', { ...containerImgTransform, scale: newScale });
+    };
+
+    return (
+      <div className="w-full h-full relative" style={{ backgroundColor: '#F7F7F7' }}>
+        {/* 배경 */}
+        <div style={{ position: 'absolute', left: '0', top: '0', width: '1920px', height: '1080px', backgroundColor: '#F7F7F7' }} />
+
+        {/* 핵심가치 */}
+        <div
+          className="editable-field"
+          contentEditable
+          suppressContentEditableWarning
+          onBlur={(e) => handleTextEdit('text_1', e)}
+          style={{
+            position: 'absolute', left: '120px', top: '100px',
+            fontSize: '32px', fontWeight: '700', color: '#BBBBBB',
+            fontFamily: 'Pretendard', letterSpacing: '-0.32px', lineHeight: 1.3
+          }}>
+          {data['text_1'] || template.elements[1].content}
+        </div>
+
+        {/* 메인 타이틀 */}
+        <div
+          className="editable-field"
+          contentEditable
+          suppressContentEditableWarning
+          onBlur={(e) => handleTextEdit('text_2', e)}
+          style={{
+            position: 'absolute', left: '120px', top: '144px',
+            fontSize: '48px', fontWeight: '700', color: '#333333',
+            fontFamily: 'Pretendard', letterSpacing: '-0.48px', lineHeight: 1.3
+          }}>
+          {data['text_2'] || template.elements[2].content}
+        </div>
+
+        {/* 본문 설명 */}
+        <div
+          className="editable-field"
+          contentEditable
+          suppressContentEditableWarning
+          onBlur={(e) => handleTextEdit('text_3', e)}
+          style={{
+            position: 'absolute', left: '739px', top: '132px',
+            fontSize: '32px', fontWeight: '500', color: '#666666',
+            fontFamily: 'Pretendard', letterSpacing: '-0.32px', lineHeight: 1.5,
+            width: '1061px', whiteSpace: 'pre-wrap'
+          }}>
+          {data['text_3'] || template.elements[3].content}
+        </div>
+
+        {/* 이미지 컨테이너 (기존 흰색 rect 영역) */}
+        <div
+          style={{
+            position: 'absolute', left: '120px', top: '400px',
+            width: '1680px', height: '550px',
+            backgroundColor: '#FFFFFF', borderRadius: '24px',
+            overflow: 'hidden',
+            cursor: containerImageSrc ? (isDraggingImg ? 'grabbing' : 'grab') : 'pointer'
+          }}
+          onClick={() => !containerImageSrc && handleImageClick('image_container')}
+          onMouseDown={containerImageSrc ? handleContainerImgMouseDown : undefined}
+          onMouseMove={containerImageSrc ? handleContainerImgMouseMove : undefined}
+          onMouseUp={containerImageSrc ? handleContainerImgMouseUp : undefined}
+          onMouseLeave={containerImageSrc ? handleContainerImgMouseUp : undefined}
+          onWheel={containerImageSrc ? handleContainerImgWheel : undefined}
+        >
+          {containerImageSrc ? (
+            <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+              <img src={containerImageSrc} alt="" style={{
+                position: 'absolute',
+                left: '50%', top: '50%',
+                transform: `translate(calc(-50% + ${containerImgTransform.x}px), calc(-50% + ${containerImgTransform.y}px)) scale(${containerImgTransform.scale})`,
+                width: '100%', height: '100%',
+                objectFit: 'contain',
+                userSelect: 'none', pointerEvents: 'none'
+              }} />
+              {/* 이미지 변경 버튼 */}
+              <button
+                onClick={(e) => { e.stopPropagation(); handleImageClick('image_container'); }}
+                style={{
+                  position: 'absolute', bottom: '20px', left: '50%', transform: 'translateX(-50%)',
+                  padding: '10px 24px', borderRadius: '8px',
+                  backgroundColor: 'rgba(0,0,0,0.6)', color: '#FFFFFF', border: 'none',
+                  cursor: 'pointer', fontSize: '16px', fontWeight: '600', fontFamily: 'Pretendard',
+                  opacity: 0, transition: 'opacity 0.2s ease', zIndex: 10,
+                  pointerEvents: 'auto'
+                }}
+                className="cv01-img-change-btn">
+                이미지 변경
+              </button>
+              {/* 조작 힌트 */}
+              <div style={{
+                position: 'absolute', top: '20px', left: '50%', transform: 'translateX(-50%)',
+                padding: '6px 16px', borderRadius: '6px',
+                backgroundColor: 'rgba(0,0,0,0.5)', color: '#FFFFFF',
+                fontSize: '14px', fontWeight: '500', fontFamily: 'Pretendard',
+                opacity: 0, transition: 'opacity 0.2s ease', pointerEvents: 'none',
+                whiteSpace: 'nowrap'
+              }} className="cv01-img-hint">
+                드래그: 위치 이동 · 스크롤: 크기 조절
+              </div>
+            </div>
+          ) : (
+            <div style={{
+              width: '100%', height: '100%',
+              display: 'flex', flexDirection: 'column',
+              alignItems: 'center', justifyContent: 'center', gap: '16px',
+              border: '2px dashed #DDDDDD', borderRadius: '24px'
+            }}>
+              <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#CCCCCC" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                <circle cx="8.5" cy="8.5" r="1.5"/>
+                <polyline points="21 15 16 10 5 21"/>
+              </svg>
+              <span style={{ fontSize: '28px', fontWeight: '600', color: '#CCCCCC', fontFamily: 'Pretendard' }}>
+                클릭하여 이미지 추가
+              </span>
+            </div>
+          )}
+        </div>
+
+        {/* 푸터 - 로고 */}
+        <div style={{ position: 'absolute', left: '120px', top: '991px', width: '118px', height: '20px' }}>
+          <img src={template.elements[5].url} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+        </div>
+
+        {/* 푸터 - 카피라이트 */}
+        <div style={{ position: 'absolute', left: '260px', top: '990px', fontSize: '20px', fontWeight: '500', color: '#BBBBBB', fontFamily: 'Pretendard', letterSpacing: '-0.2px', lineHeight: 1.4, whiteSpace: 'pre-wrap' }}>
+          {template.elements[6].content}
+        </div>
+
+        {/* 푸터 - 페이지 번호 */}
+        <div
+          className="editable-field"
+          contentEditable={false}
+          style={{ position: 'absolute', left: '1680px', top: '990px', fontSize: '20px', fontWeight: '500', color: '#999999', fontFamily: 'Pretendard', letterSpacing: '-0.2px', lineHeight: 1.4, textAlign: 'right', width: '120px', cursor: 'default' }}>
+          {getPageNumber(currentSlideIndex)}
+        </div>
+      </div>
+    );
+  }
+
+  // ─── Core Value Type 03 전용 렌더링 (2 컨테이너) ───
+  if (template.id === 'corevalue03') {
+    // 컨테이너별 이미지 데이터
+    const containers = [
+      { key: 'image_container_left', rect: { x: 120, y: 400, w: 820, h: 550 }, textElements: [
+        { dataKey: 'text_5', el: template.elements[5], x: 200, y: 480 },
+        { dataKey: 'text_6', el: template.elements[6], x: 200, y: 544 }
+      ]},
+      { key: 'image_container_right', rect: { x: 980, y: 400, w: 820, h: 550 }, textElements: [
+        { dataKey: 'text_8', el: template.elements[8], x: 1060, y: 480 },
+        { dataKey: 'text_9', el: template.elements[9], x: 1060, y: 544 }
+      ]}
+    ];
+
+    const makeContainerHandlers = (imageKey) => {
+      const imageSrc = data[imageKey];
+      const imgTransform = data[`${imageKey}_transform`] || { x: 0, y: 0, scale: 1 };
+
+      return {
+        imageSrc, imgTransform,
+        onMouseDown: (e) => {
+          if (!imageSrc) return;
+          if (e.target.closest('.editable-field')) return;
+          e.preventDefault();
+          e.stopPropagation();
+          setIsDraggingImg(true);
+          setDraggingImageKey(imageKey);
+          setDragStart({ x: e.clientX, y: e.clientY });
+          setDragOffset({ x: imgTransform.x, y: imgTransform.y });
+        },
+        onMouseMove: (e) => {
+          if (!isDraggingImg || draggingImageKey !== imageKey) return;
+          const slideEl = e.currentTarget.closest('.w-full.h-full');
+          const rect = slideEl?.getBoundingClientRect();
+          const currentScale = rect ? rect.width / 1920 : 1;
+          const dx = (e.clientX - dragStart.x) / currentScale;
+          const dy = (e.clientY - dragStart.y) / currentScale;
+          onUpdate(`${imageKey}_transform`, { ...imgTransform, x: dragOffset.x + dx, y: dragOffset.y + dy });
+        },
+        onMouseUp: () => {
+          if (draggingImageKey === imageKey) { setIsDraggingImg(false); setDraggingImageKey(null); }
+        },
+        onWheel: (e) => {
+          if (!imageSrc) return;
+          e.preventDefault(); e.stopPropagation();
+          const delta = e.deltaY > 0 ? -0.05 : 0.05;
+          const newScale = Math.max(0.5, Math.min(3, imgTransform.scale + delta));
+          onUpdate(`${imageKey}_transform`, { ...imgTransform, scale: newScale });
+        }
+      };
+    };
+
+    return (
+      <div className="w-full h-full relative" style={{ backgroundColor: '#F7F7F7' }}>
+        <div style={{ position: 'absolute', left: '0', top: '0', width: '1920px', height: '1080px', backgroundColor: '#F7F7F7' }} />
+
+        {/* 핵심가치 */}
+        <div className="editable-field" contentEditable suppressContentEditableWarning
+          onBlur={(e) => handleTextEdit('text_1', e)}
+          style={{ position: 'absolute', left: '120px', top: '100px', fontSize: '32px', fontWeight: '700', color: '#BBBBBB', fontFamily: 'Pretendard', letterSpacing: '-0.32px', lineHeight: 1.3 }}>
+          {data['text_1'] || template.elements[1].content}
+        </div>
+
+        {/* 메인 타이틀 */}
+        <div className="editable-field" contentEditable suppressContentEditableWarning
+          onBlur={(e) => handleTextEdit('text_2', e)}
+          style={{ position: 'absolute', left: '120px', top: '144px', fontSize: '48px', fontWeight: '700', color: '#333333', fontFamily: 'Pretendard', letterSpacing: '-0.48px', lineHeight: 1.3 }}>
+          {data['text_2'] || template.elements[2].content}
+        </div>
+
+        {/* 본문 설명 */}
+        <div className="editable-field" contentEditable suppressContentEditableWarning
+          onBlur={(e) => handleTextEdit('text_3', e)}
+          style={{ position: 'absolute', left: '739px', top: '132px', fontSize: '32px', fontWeight: '500', color: '#666666', fontFamily: 'Pretendard', letterSpacing: '-0.32px', lineHeight: 1.5, width: '1061px', whiteSpace: 'pre-wrap' }}>
+          {data['text_3'] || template.elements[3].content}
+        </div>
+
+        {/* 컨테이너들 */}
+        {containers.map((container) => {
+          const h = makeContainerHandlers(container.key);
+          const IMG_TOP = 240;
+          const IMG_HEIGHT = container.rect.h - IMG_TOP;
+          return (
+            <div key={container.key}
+              style={{
+                position: 'absolute',
+                left: `${container.rect.x}px`, top: `${container.rect.y}px`,
+                width: `${container.rect.w}px`, height: `${container.rect.h}px`,
+                backgroundColor: '#FFFFFF', borderRadius: '24px', overflow: 'hidden'
+              }}
+            >
+              {/* 텍스트 영역 (상단) */}
+              {container.textElements.map((te) => (
+                <div key={te.dataKey}
+                  className="editable-field" contentEditable suppressContentEditableWarning
+                  onBlur={(e) => handleTextEdit(te.dataKey, e)}
+                  style={{
+                    position: 'absolute',
+                    left: `${te.x - container.rect.x}px`,
+                    top: `${te.y - container.rect.y}px`,
+                    fontSize: `${te.el.fontSize}px`, fontWeight: te.el.fontWeight,
+                    color: te.el.fill, fontFamily: te.el.fontFamily,
+                    letterSpacing: `${te.el.letterSpacing}px`, lineHeight: te.el.lineHeight,
+                    width: te.el.width ? `${te.el.width}px` : 'auto',
+                    whiteSpace: 'pre-wrap', zIndex: 2
+                  }}>
+                  {data[te.dataKey] || te.el.content}
+                </div>
+              ))}
+
+              {/* 이미지 영역 (하단, 텍스트 아래) */}
+              <div
+                style={{
+                  position: 'absolute', left: '40px', top: `${IMG_TOP}px`,
+                  width: `${container.rect.w - 80}px`, height: `${container.rect.h - IMG_TOP - 40}px`,
+                  overflow: 'hidden', borderRadius: '16px',
+                  cursor: h.imageSrc ? (isDraggingImg && draggingImageKey === container.key ? 'grabbing' : 'grab') : 'pointer',
+                  zIndex: 1
+                }}
+                onClick={(e) => { e.stopPropagation(); if (!h.imageSrc) handleImageClick(container.key); }}
+                onMouseDown={h.imageSrc ? h.onMouseDown : undefined}
+                onMouseMove={h.imageSrc ? h.onMouseMove : undefined}
+                onMouseUp={h.imageSrc ? h.onMouseUp : undefined}
+                onMouseLeave={h.imageSrc ? h.onMouseUp : undefined}
+                onWheel={h.imageSrc ? h.onWheel : undefined}
+              >
+                {h.imageSrc ? (
+                  <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+                    <img src={h.imageSrc} alt="" style={{
+                      position: 'absolute', left: '50%', top: '50%',
+                      transform: `translate(calc(-50% + ${h.imgTransform.x}px), calc(-50% + ${h.imgTransform.y}px)) scale(${h.imgTransform.scale})`,
+                      width: '100%', height: '100%', objectFit: 'contain',
+                      userSelect: 'none', pointerEvents: 'none'
+                    }} />
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleImageClick(container.key); }}
+                      className="cv01-img-change-btn"
+                      style={{
+                        position: 'absolute', bottom: '16px', left: '50%', transform: 'translateX(-50%)',
+                        padding: '8px 20px', borderRadius: '8px',
+                        backgroundColor: 'rgba(0,0,0,0.6)', color: '#FFFFFF', border: 'none',
+                        cursor: 'pointer', fontSize: '14px', fontWeight: '600', fontFamily: 'Pretendard',
+                        opacity: 0, transition: 'opacity 0.2s ease', zIndex: 10, pointerEvents: 'auto'
+                      }}>
+                      이미지 변경
+                    </button>
+                    <div className="cv01-img-hint" style={{
+                      position: 'absolute', top: '12px', left: '50%', transform: 'translateX(-50%)',
+                      padding: '4px 12px', borderRadius: '6px',
+                      backgroundColor: 'rgba(0,0,0,0.5)', color: '#FFFFFF',
+                      fontSize: '12px', fontWeight: '500', fontFamily: 'Pretendard',
+                      opacity: 0, transition: 'opacity 0.2s ease', pointerEvents: 'none',
+                      whiteSpace: 'nowrap', zIndex: 10
+                    }}>
+                      드래그: 위치 이동 · 스크롤: 크기 조절
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{
+                    width: '100%', height: '100%',
+                    display: 'flex', flexDirection: 'column',
+                    alignItems: 'center', justifyContent: 'center', gap: '16px',
+                    backgroundColor: '#F0F0F0', borderRadius: '16px',
+                    margin: '0 16px', width: 'calc(100% - 32px)'
+                  }}>
+                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#BBBBBB" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                      <circle cx="8.5" cy="8.5" r="1.5"/>
+                      <polyline points="21 15 16 10 5 21"/>
+                    </svg>
+                    <span style={{ fontSize: '20px', fontWeight: '600', color: '#BBBBBB', fontFamily: 'Pretendard' }}>
+                      클릭하여 이미지 추가
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })}
+
+        {/* 푸터 */}
+        <div style={{ position: 'absolute', left: '120px', top: '991px', width: '118px', height: '20px' }}>
+          <img src={template.elements[10].url} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+        </div>
+        <div style={{ position: 'absolute', left: '260px', top: '990px', fontSize: '20px', fontWeight: '500', color: '#BBBBBB', fontFamily: 'Pretendard', letterSpacing: '-0.2px', lineHeight: 1.4, whiteSpace: 'pre-wrap' }}>
+          {template.elements[11].content}
+        </div>
+        <div className="editable-field" contentEditable={false}
+          style={{ position: 'absolute', left: '1680px', top: '990px', fontSize: '20px', fontWeight: '500', color: '#999999', fontFamily: 'Pretendard', letterSpacing: '-0.2px', lineHeight: 1.4, textAlign: 'right', width: '120px', cursor: 'default' }}>
+          {getPageNumber(currentSlideIndex)}
+        </div>
+      </div>
+    );
+  }
+
+  // ─── Core Value Type 04 전용 렌더링 (3 컨테이너) ───
+  if (template.id === 'corevalue04') {
+    const containers = [
+      { key: 'image_container_1', rect: { x: 120, y: 400, w: 533, h: 550 }, textElements: [
+        { dataKey: 'text_5', el: template.elements[5], x: 200, y: 480 },
+        { dataKey: 'text_6', el: template.elements[6], x: 200, y: 544 }
+      ]},
+      { key: 'image_container_2', rect: { x: 693, y: 400, w: 534, h: 550 }, textElements: [
+        { dataKey: 'text_8', el: template.elements[8], x: 773, y: 480 },
+        { dataKey: 'text_9', el: template.elements[9], x: 773, y: 544 }
+      ]},
+      { key: 'image_container_3', rect: { x: 1267, y: 400, w: 533, h: 550 }, textElements: [
+        { dataKey: 'text_11', el: template.elements[11], x: 1347, y: 480 },
+        { dataKey: 'text_12', el: template.elements[12], x: 1347, y: 544 }
+      ]}
+    ];
+
+    const makeContainerHandlers = (imageKey) => {
+      const imageSrc = data[imageKey];
+      const imgTransform = data[`${imageKey}_transform`] || { x: 0, y: 0, scale: 1 };
+
+      return {
+        imageSrc, imgTransform,
+        onMouseDown: (e) => {
+          if (!imageSrc) return;
+          if (e.target.closest('.editable-field')) return;
+          e.preventDefault(); e.stopPropagation();
+          setIsDraggingImg(true);
+          setDraggingImageKey(imageKey);
+          setDragStart({ x: e.clientX, y: e.clientY });
+          setDragOffset({ x: imgTransform.x, y: imgTransform.y });
+        },
+        onMouseMove: (e) => {
+          if (!isDraggingImg || draggingImageKey !== imageKey) return;
+          const slideEl = e.currentTarget.closest('.w-full.h-full');
+          const rect = slideEl?.getBoundingClientRect();
+          const currentScale = rect ? rect.width / 1920 : 1;
+          const dx = (e.clientX - dragStart.x) / currentScale;
+          const dy = (e.clientY - dragStart.y) / currentScale;
+          onUpdate(`${imageKey}_transform`, { ...imgTransform, x: dragOffset.x + dx, y: dragOffset.y + dy });
+        },
+        onMouseUp: () => {
+          if (draggingImageKey === imageKey) { setIsDraggingImg(false); setDraggingImageKey(null); }
+        },
+        onWheel: (e) => {
+          if (!imageSrc) return;
+          e.preventDefault(); e.stopPropagation();
+          const delta = e.deltaY > 0 ? -0.05 : 0.05;
+          const newScale = Math.max(0.5, Math.min(3, imgTransform.scale + delta));
+          onUpdate(`${imageKey}_transform`, { ...imgTransform, scale: newScale });
+        }
+      };
+    };
+
+    return (
+      <div className="w-full h-full relative" style={{ backgroundColor: '#F7F7F7' }}>
+        <div style={{ position: 'absolute', left: '0', top: '0', width: '1920px', height: '1080px', backgroundColor: '#F7F7F7' }} />
+
+        {/* 핵심가치 */}
+        <div className="editable-field" contentEditable suppressContentEditableWarning
+          onBlur={(e) => handleTextEdit('text_1', e)}
+          style={{ position: 'absolute', left: '120px', top: '100px', fontSize: '32px', fontWeight: '700', color: '#BBBBBB', fontFamily: 'Pretendard', letterSpacing: '-0.32px', lineHeight: 1.3 }}>
+          {data['text_1'] || template.elements[1].content}
+        </div>
+
+        {/* 메인 타이틀 */}
+        <div className="editable-field" contentEditable suppressContentEditableWarning
+          onBlur={(e) => handleTextEdit('text_2', e)}
+          style={{ position: 'absolute', left: '120px', top: '144px', fontSize: '48px', fontWeight: '700', color: '#333333', fontFamily: 'Pretendard', letterSpacing: '-0.48px', lineHeight: 1.3 }}>
+          {data['text_2'] || template.elements[2].content}
+        </div>
+
+        {/* 본문 설명 */}
+        <div className="editable-field" contentEditable suppressContentEditableWarning
+          onBlur={(e) => handleTextEdit('text_3', e)}
+          style={{ position: 'absolute', left: '739px', top: '132px', fontSize: '32px', fontWeight: '500', color: '#666666', fontFamily: 'Pretendard', letterSpacing: '-0.32px', lineHeight: 1.5, width: '1061px', whiteSpace: 'pre-wrap' }}>
+          {data['text_3'] || template.elements[3].content}
+        </div>
+
+        {/* 3개 컨테이너 */}
+        {containers.map((container) => {
+          const h = makeContainerHandlers(container.key);
+          const IMG_TOP = 240;
+          const IMG_HEIGHT = container.rect.h - IMG_TOP;
+          return (
+            <div key={container.key}
+              style={{
+                position: 'absolute',
+                left: `${container.rect.x}px`, top: `${container.rect.y}px`,
+                width: `${container.rect.w}px`, height: `${container.rect.h}px`,
+                backgroundColor: '#FFFFFF', borderRadius: '24px', overflow: 'hidden'
+              }}
+            >
+              {/* 텍스트 영역 (상단) */}
+              {container.textElements.map((te) => (
+                <div key={te.dataKey}
+                  className="editable-field" contentEditable suppressContentEditableWarning
+                  onBlur={(e) => handleTextEdit(te.dataKey, e)}
+                  style={{
+                    position: 'absolute',
+                    left: `${te.x - container.rect.x}px`,
+                    top: `${te.y - container.rect.y}px`,
+                    fontSize: `${te.el.fontSize}px`, fontWeight: te.el.fontWeight,
+                    color: te.el.fill, fontFamily: te.el.fontFamily,
+                    letterSpacing: `${te.el.letterSpacing}px`, lineHeight: te.el.lineHeight,
+                    width: te.el.width ? `${te.el.width}px` : 'auto',
+                    whiteSpace: 'pre-wrap', zIndex: 2
+                  }}>
+                  {data[te.dataKey] || te.el.content}
+                </div>
+              ))}
+
+              {/* 이미지 영역 (하단, 텍스트 아래) */}
+              <div
+                style={{
+                  position: 'absolute', left: '40px', top: `${IMG_TOP}px`,
+                  width: `${container.rect.w - 80}px`, height: `${container.rect.h - IMG_TOP - 40}px`,
+                  overflow: 'hidden', borderRadius: '16px',
+                  cursor: h.imageSrc ? (isDraggingImg && draggingImageKey === container.key ? 'grabbing' : 'grab') : 'pointer',
+                  zIndex: 1
+                }}
+                onClick={(e) => { e.stopPropagation(); if (!h.imageSrc) handleImageClick(container.key); }}
+                onMouseDown={h.imageSrc ? h.onMouseDown : undefined}
+                onMouseMove={h.imageSrc ? h.onMouseMove : undefined}
+                onMouseUp={h.imageSrc ? h.onMouseUp : undefined}
+                onMouseLeave={h.imageSrc ? h.onMouseUp : undefined}
+                onWheel={h.imageSrc ? h.onWheel : undefined}
+              >
+                {h.imageSrc ? (
+                  <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+                    <img src={h.imageSrc} alt="" style={{
+                      position: 'absolute', left: '50%', top: '50%',
+                      transform: `translate(calc(-50% + ${h.imgTransform.x}px), calc(-50% + ${h.imgTransform.y}px)) scale(${h.imgTransform.scale})`,
+                      width: '100%', height: '100%', objectFit: 'contain',
+                      userSelect: 'none', pointerEvents: 'none'
+                    }} />
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleImageClick(container.key); }}
+                      className="cv01-img-change-btn"
+                      style={{
+                        position: 'absolute', bottom: '16px', left: '50%', transform: 'translateX(-50%)',
+                        padding: '8px 20px', borderRadius: '8px',
+                        backgroundColor: 'rgba(0,0,0,0.6)', color: '#FFFFFF', border: 'none',
+                        cursor: 'pointer', fontSize: '14px', fontWeight: '600', fontFamily: 'Pretendard',
+                        opacity: 0, transition: 'opacity 0.2s ease', zIndex: 10, pointerEvents: 'auto'
+                      }}>
+                      이미지 변경
+                    </button>
+                    <div className="cv01-img-hint" style={{
+                      position: 'absolute', top: '12px', left: '50%', transform: 'translateX(-50%)',
+                      padding: '4px 12px', borderRadius: '6px',
+                      backgroundColor: 'rgba(0,0,0,0.5)', color: '#FFFFFF',
+                      fontSize: '12px', fontWeight: '500', fontFamily: 'Pretendard',
+                      opacity: 0, transition: 'opacity 0.2s ease', pointerEvents: 'none',
+                      whiteSpace: 'nowrap', zIndex: 10
+                    }}>
+                      드래그: 위치 이동 · 스크롤: 크기 조절
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{
+                    width: '100%', height: '100%',
+                    display: 'flex', flexDirection: 'column',
+                    alignItems: 'center', justifyContent: 'center', gap: '16px',
+                    backgroundColor: '#F0F0F0', borderRadius: '16px'
+                  }}>
+                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#BBBBBB" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                      <circle cx="8.5" cy="8.5" r="1.5"/>
+                      <polyline points="21 15 16 10 5 21"/>
+                    </svg>
+                    <span style={{ fontSize: '20px', fontWeight: '600', color: '#BBBBBB', fontFamily: 'Pretendard' }}>
+                      클릭하여 이미지 추가
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })}
+
+        {/* 푸터 */}
+        <div style={{ position: 'absolute', left: '120px', top: '991px', width: '118px', height: '20px' }}>
+          <img src={template.elements[13].url} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+        </div>
+        <div style={{ position: 'absolute', left: '260px', top: '990px', fontSize: '20px', fontWeight: '500', color: '#BBBBBB', fontFamily: 'Pretendard', letterSpacing: '-0.2px', lineHeight: 1.4, whiteSpace: 'pre-wrap' }}>
+          {template.elements[14].content}
+        </div>
+        <div className="editable-field" contentEditable={false}
+          style={{ position: 'absolute', left: '1680px', top: '990px', fontSize: '20px', fontWeight: '500', color: '#999999', fontFamily: 'Pretendard', letterSpacing: '-0.2px', lineHeight: 1.4, textAlign: 'right', width: '120px', cursor: 'default' }}>
+          {getPageNumber(currentSlideIndex)}
+        </div>
+      </div>
+    );
+  }
+
+  // ─── Core Value Type 05 전용 렌더링 (4 컨테이너, 2×2, 우측 이미지) ───
+  if (template.id === 'corevalue05') {
+    const containers = [
+      { key: 'image_container_1', rect: { x: 120, y: 400, w: 820, h: 255 }, textElements: [
+        { dataKey: 'text_5', el: template.elements[5], x: 200, y: 480 },
+        { dataKey: 'text_6', el: template.elements[6], x: 200, y: 544 }
+      ]},
+      { key: 'image_container_2', rect: { x: 980, y: 400, w: 820, h: 255 }, textElements: [
+        { dataKey: 'text_8', el: template.elements[8], x: 1060, y: 480 },
+        { dataKey: 'text_9', el: template.elements[9], x: 1060, y: 544 }
+      ]},
+      { key: 'image_container_3', rect: { x: 120, y: 695, w: 820, h: 255 }, textElements: [
+        { dataKey: 'text_11', el: template.elements[11], x: 200, y: 775 },
+        { dataKey: 'text_12', el: template.elements[12], x: 200, y: 839 }
+      ]},
+      { key: 'image_container_4', rect: { x: 980, y: 695, w: 820, h: 255 }, textElements: [
+        { dataKey: 'text_14', el: template.elements[14], x: 1060, y: 775 },
+        { dataKey: 'text_15', el: template.elements[15], x: 1060, y: 839 }
+      ]}
+    ];
+
+    const makeContainerHandlers = (imageKey) => {
+      const imageSrc = data[imageKey];
+      const imgTransform = data[`${imageKey}_transform`] || { x: 0, y: 0, scale: 1 };
+
+      return {
+        imageSrc, imgTransform,
+        onMouseDown: (e) => {
+          if (!imageSrc) return;
+          if (e.target.closest('.editable-field')) return;
+          e.preventDefault(); e.stopPropagation();
+          setIsDraggingImg(true);
+          setDraggingImageKey(imageKey);
+          setDragStart({ x: e.clientX, y: e.clientY });
+          setDragOffset({ x: imgTransform.x, y: imgTransform.y });
+        },
+        onMouseMove: (e) => {
+          if (!isDraggingImg || draggingImageKey !== imageKey) return;
+          const slideEl = e.currentTarget.closest('.w-full.h-full');
+          const rect = slideEl?.getBoundingClientRect();
+          const currentScale = rect ? rect.width / 1920 : 1;
+          const dx = (e.clientX - dragStart.x) / currentScale;
+          const dy = (e.clientY - dragStart.y) / currentScale;
+          onUpdate(`${imageKey}_transform`, { ...imgTransform, x: dragOffset.x + dx, y: dragOffset.y + dy });
+        },
+        onMouseUp: () => {
+          if (draggingImageKey === imageKey) { setIsDraggingImg(false); setDraggingImageKey(null); }
+        },
+        onWheel: (e) => {
+          if (!imageSrc) return;
+          e.preventDefault(); e.stopPropagation();
+          const delta = e.deltaY > 0 ? -0.05 : 0.05;
+          const newScale = Math.max(0.5, Math.min(3, imgTransform.scale + delta));
+          onUpdate(`${imageKey}_transform`, { ...imgTransform, scale: newScale });
+        }
+      };
+    };
+
+    return (
+      <div className="w-full h-full relative" style={{ backgroundColor: '#F7F7F7' }}>
+        <div style={{ position: 'absolute', left: '0', top: '0', width: '1920px', height: '1080px', backgroundColor: '#F7F7F7' }} />
+
+        {/* 핵심가치 */}
+        <div className="editable-field" contentEditable suppressContentEditableWarning
+          onBlur={(e) => handleTextEdit('text_1', e)}
+          style={{ position: 'absolute', left: '120px', top: '100px', fontSize: '32px', fontWeight: '700', color: '#BBBBBB', fontFamily: 'Pretendard', letterSpacing: '-0.32px', lineHeight: 1.3 }}>
+          {data['text_1'] || template.elements[1].content}
+        </div>
+
+        {/* 메인 타이틀 */}
+        <div className="editable-field" contentEditable suppressContentEditableWarning
+          onBlur={(e) => handleTextEdit('text_2', e)}
+          style={{ position: 'absolute', left: '120px', top: '144px', fontSize: '48px', fontWeight: '700', color: '#333333', fontFamily: 'Pretendard', letterSpacing: '-0.48px', lineHeight: 1.3 }}>
+          {data['text_2'] || template.elements[2].content}
+        </div>
+
+        {/* 본문 설명 */}
+        <div className="editable-field" contentEditable suppressContentEditableWarning
+          onBlur={(e) => handleTextEdit('text_3', e)}
+          style={{ position: 'absolute', left: '739px', top: '132px', fontSize: '32px', fontWeight: '500', color: '#666666', fontFamily: 'Pretendard', letterSpacing: '-0.32px', lineHeight: 1.5, width: '1061px', whiteSpace: 'pre-wrap' }}>
+          {data['text_3'] || template.elements[3].content}
+        </div>
+
+        {/* 4개 컨테이너 (2×2) */}
+        {containers.map((container) => {
+          const h = makeContainerHandlers(container.key);
+          const IMG_LEFT = 480;
+          const IMG_WIDTH = container.rect.w - IMG_LEFT - 40;
+          const IMG_HEIGHT = container.rect.h - 80;
+          return (
+            <div key={container.key}
+              style={{
+                position: 'absolute',
+                left: `${container.rect.x}px`, top: `${container.rect.y}px`,
+                width: `${container.rect.w}px`, height: `${container.rect.h}px`,
+                backgroundColor: '#FFFFFF', borderRadius: '24px', overflow: 'hidden'
+              }}
+            >
+              {/* 텍스트 영역 (좌측) */}
+              {container.textElements.map((te) => (
+                <div key={te.dataKey}
+                  className="editable-field" contentEditable suppressContentEditableWarning
+                  onBlur={(e) => handleTextEdit(te.dataKey, e)}
+                  style={{
+                    position: 'absolute',
+                    left: `${te.x - container.rect.x}px`,
+                    top: `${te.y - container.rect.y}px`,
+                    fontSize: `${te.el.fontSize}px`, fontWeight: te.el.fontWeight,
+                    color: te.el.fill, fontFamily: te.el.fontFamily,
+                    letterSpacing: `${te.el.letterSpacing}px`, lineHeight: te.el.lineHeight,
+                    width: '380px',
+                    whiteSpace: 'pre-wrap', zIndex: 2
+                  }}>
+                  {data[te.dataKey] || te.el.content}
+                </div>
+              ))}
+
+              {/* 이미지 영역 (우측) */}
+              <div
+                style={{
+                  position: 'absolute', left: `${IMG_LEFT}px`, top: '40px',
+                  width: `${IMG_WIDTH}px`, height: `${IMG_HEIGHT}px`,
+                  overflow: 'hidden', borderRadius: '16px',
+                  cursor: h.imageSrc ? (isDraggingImg && draggingImageKey === container.key ? 'grabbing' : 'grab') : 'pointer',
+                  zIndex: 1
+                }}
+                onClick={(e) => { e.stopPropagation(); if (!h.imageSrc) handleImageClick(container.key); }}
+                onMouseDown={h.imageSrc ? h.onMouseDown : undefined}
+                onMouseMove={h.imageSrc ? h.onMouseMove : undefined}
+                onMouseUp={h.imageSrc ? h.onMouseUp : undefined}
+                onMouseLeave={h.imageSrc ? h.onMouseUp : undefined}
+                onWheel={h.imageSrc ? h.onWheel : undefined}
+              >
+                {h.imageSrc ? (
+                  <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+                    <img src={h.imageSrc} alt="" style={{
+                      position: 'absolute', left: '50%', top: '50%',
+                      transform: `translate(calc(-50% + ${h.imgTransform.x}px), calc(-50% + ${h.imgTransform.y}px)) scale(${h.imgTransform.scale})`,
+                      width: '100%', height: '100%', objectFit: 'contain',
+                      userSelect: 'none', pointerEvents: 'none'
+                    }} />
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleImageClick(container.key); }}
+                      className="cv01-img-change-btn"
+                      style={{
+                        position: 'absolute', bottom: '12px', left: '50%', transform: 'translateX(-50%)',
+                        padding: '6px 16px', borderRadius: '8px',
+                        backgroundColor: 'rgba(0,0,0,0.6)', color: '#FFFFFF', border: 'none',
+                        cursor: 'pointer', fontSize: '14px', fontWeight: '600', fontFamily: 'Pretendard',
+                        opacity: 0, transition: 'opacity 0.2s ease', zIndex: 10, pointerEvents: 'auto'
+                      }}>
+                      이미지 변경
+                    </button>
+                    <div className="cv01-img-hint" style={{
+                      position: 'absolute', top: '8px', left: '50%', transform: 'translateX(-50%)',
+                      padding: '4px 10px', borderRadius: '6px',
+                      backgroundColor: 'rgba(0,0,0,0.5)', color: '#FFFFFF',
+                      fontSize: '11px', fontWeight: '500', fontFamily: 'Pretendard',
+                      opacity: 0, transition: 'opacity 0.2s ease', pointerEvents: 'none',
+                      whiteSpace: 'nowrap', zIndex: 10
+                    }}>
+                      드래그: 이동 · 스크롤: 크기
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{
+                    width: '100%', height: '100%',
+                    display: 'flex', flexDirection: 'column',
+                    alignItems: 'center', justifyContent: 'center', gap: '12px',
+                    backgroundColor: '#F0F0F0', borderRadius: '16px'
+                  }}>
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#BBBBBB" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                      <circle cx="8.5" cy="8.5" r="1.5"/>
+                      <polyline points="21 15 16 10 5 21"/>
+                    </svg>
+                    <span style={{ fontSize: '16px', fontWeight: '600', color: '#BBBBBB', fontFamily: 'Pretendard' }}>
+                      클릭하여 이미지 추가
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })}
+
+        {/* 푸터 */}
+        <div style={{ position: 'absolute', left: '120px', top: '991px', width: '118px', height: '20px' }}>
+          <img src={template.elements[16].url} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+        </div>
+        <div style={{ position: 'absolute', left: '260px', top: '990px', fontSize: '20px', fontWeight: '500', color: '#BBBBBB', fontFamily: 'Pretendard', letterSpacing: '-0.2px', lineHeight: 1.4, whiteSpace: 'pre-wrap' }}>
+          {template.elements[17].content}
+        </div>
+        <div className="editable-field" contentEditable={false}
+          style={{ position: 'absolute', left: '1680px', top: '990px', fontSize: '20px', fontWeight: '500', color: '#999999', fontFamily: 'Pretendard', letterSpacing: '-0.2px', lineHeight: 1.4, textAlign: 'right', width: '120px', cursor: 'default' }}>
+          {getPageNumber(currentSlideIndex)}
+        </div>
+      </div>
+    );
+  }
+
+  // ─── Section Cover Type 03 전용 렌더링 (동적 행 추가/삭제/순서변경/강조) ───
+  if (template.id === 'section03') {
+    const rows = section03Rows;
+    const ROW_GAP = 112;
+    const ROW_HEIGHT = 62;
+    const totalBlockHeight = (rows.length - 1) * ROW_GAP + ROW_HEIGHT;
+    const ROW_START_Y = Math.round((1080 - totalBlockHeight) / 2);
+
+    const handleAddRow = () => {
+      if (rows.length >= 6) return;
+      const newRows = [...rows, { id: `r${Date.now()}`, title: '타이틀 텍스트', highlighted: false }];
+      setSection03Rows(newRows);
+      onUpdate('rows', newRows);
+    };
+
+    const handleDeleteRow = (rowId) => {
+      if (rows.length <= 1) return;
+      const newRows = rows.filter(r => r.id !== rowId);
+      setSection03Rows(newRows);
+      onUpdate('rows', newRows);
+    };
+
+    const handleRowTitleEdit = (rowId, newTitle) => {
+      const newRows = rows.map(r => r.id === rowId ? { ...r, title: newTitle } : r);
+      setSection03Rows(newRows);
+      onUpdate('rows', newRows);
+    };
+
+    const handleToggleHighlight = (rowId) => {
+      const newRows = rows.map(r => r.id === rowId ? { ...r, highlighted: !r.highlighted } : r);
+      setSection03Rows(newRows);
+      onUpdate('rows', newRows);
+    };
+
+    const handleMoveRow = (index, direction) => {
+      const newIndex = index + direction;
+      if (newIndex < 0 || newIndex >= rows.length) return;
+      const newRows = [...rows];
+      [newRows[index], newRows[newIndex]] = [newRows[newIndex], newRows[index]];
+      setSection03Rows(newRows);
+      onUpdate('rows', newRows);
+    };
+
+    return (
+      <div className="w-full h-full relative" style={{ backgroundColor: '#333333' }}>
+        <div style={{ position: 'absolute', left: '0', top: '0', width: '1920px', height: '1080px', backgroundColor: '#333333' }} />
+
+        {/* 행 추가 버튼 */}
+        <div style={{ position: 'absolute', right: '120px', top: '100px', display: 'flex', gap: '12px', zIndex: 10 }}>
+          <button
+            onClick={handleAddRow}
+            disabled={rows.length >= 6}
+            style={{
+              padding: '12px 24px', backgroundColor: rows.length >= 6 ? '#555555' : '#FFFFFF',
+              color: rows.length >= 6 ? '#999999' : '#333333', borderRadius: '8px', border: 'none',
+              fontSize: '16px', fontWeight: '600', cursor: rows.length >= 6 ? 'not-allowed' : 'pointer',
+              fontFamily: 'Pretendard', transition: 'all 0.2s ease'
+            }}>
+            + 행 추가
+          </button>
+        </div>
+
+        {/* 동적 행 렌더링 - 세로 가운데 정렬, 좌측 정렬 */}
+        {rows.map((row, index) => {
+          const y = ROW_START_Y + index * ROW_GAP;
+          const isHighlighted = row.highlighted !== undefined ? row.highlighted : (index === 0);
+          const rowOpacity = isHighlighted ? 1 : 0.3;
+
+          return (
+            <div key={row.id} className="delete-section-wrapper" style={{
+              position: 'absolute', left: '933px', top: `${y}px`,
+              display: 'flex', alignItems: 'center'
+            }}>
+              {/* 강조 토글 버튼 */}
+              <button
+                onClick={() => handleToggleHighlight(row.id)}
+                style={{
+                  marginRight: '16px', width: '32px', height: '32px', borderRadius: '50%',
+                  backgroundColor: isHighlighted ? '#FFFFFF' : 'transparent',
+                  border: isHighlighted ? '2px solid #FFFFFF' : '2px solid rgba(255,255,255,0.4)',
+                  cursor: 'pointer', padding: 0, transition: 'all 0.2s ease',
+                  flexShrink: 0
+                }}
+                title={isHighlighted ? '강조 해제' : '강조'}
+              />
+
+              {/* 넘버링 */}
+              <div style={{
+                fontSize: '32px', fontWeight: '700', color: '#FFFFFF',
+                fontFamily: 'Pretendard', opacity: rowOpacity,
+                width: '88px', cursor: 'default', transition: 'opacity 0.2s ease',
+                flexShrink: 0
+              }}>
+                {index + 1}
+              </div>
+
+              {/* 타이틀 */}
+              <div
+                className="editable-field"
+                contentEditable
+                suppressContentEditableWarning
+                onBlur={(e) => handleRowTitleEdit(row.id, e.target.innerText)}
+                style={{
+                  fontSize: '48px', fontWeight: '700', color: '#FFFFFF',
+                  fontFamily: 'Pretendard', letterSpacing: '-0.48px', lineHeight: 1.3,
+                  opacity: rowOpacity, whiteSpace: 'nowrap', transition: 'opacity 0.2s ease'
+                }}>
+                {row.title}
+              </div>
+
+              {/* 순서 변경 & 삭제 버튼 */}
+              <div className="delete-section-btn" style={{
+                marginLeft: '20px', display: 'flex', gap: '6px', alignItems: 'center',
+                opacity: 0, transition: 'opacity 0.2s ease'
+              }}>
+                {index > 0 && (
+                  <button
+                    onClick={() => handleMoveRow(index, -1)}
+                    style={{
+                      width: '36px', height: '36px', borderRadius: '6px',
+                      backgroundColor: 'rgba(255,255,255,0.15)', color: '#FFFFFF', border: 'none',
+                      cursor: 'pointer', fontSize: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center'
+                    }}
+                    title="위로 이동">▲</button>
+                )}
+                {index < rows.length - 1 && (
+                  <button
+                    onClick={() => handleMoveRow(index, 1)}
+                    style={{
+                      width: '36px', height: '36px', borderRadius: '6px',
+                      backgroundColor: 'rgba(255,255,255,0.15)', color: '#FFFFFF', border: 'none',
+                      cursor: 'pointer', fontSize: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center'
+                    }}
+                    title="아래로 이동">▼</button>
+                )}
+                {rows.length > 1 && (
+                  <button
+                    onClick={() => handleDeleteRow(row.id)}
+                    style={{
+                      width: '36px', height: '36px', borderRadius: '6px',
+                      backgroundColor: 'rgba(255,255,255,0.15)', color: '#FFFFFF', border: 'none',
+                      cursor: 'pointer', fontSize: '20px', fontWeight: 'normal',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center'
+                    }}
+                    title="행 삭제">×</button>
+                )}
+              </div>
+            </div>
+          );
+        })}
+
+        {/* 푸터 - 로고 */}
+        <div style={{ position: 'absolute', left: '120px', top: '991px', width: '118px', height: '20px' }}>
+          <img src={template.elements[11].url} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+        </div>
+        {/* 푸터 - 카피라이트 */}
+        <div style={{ position: 'absolute', left: '260px', top: '990px', fontSize: '20px', fontWeight: '500', color: '#BBBBBB', fontFamily: 'Pretendard', letterSpacing: '-0.2px', lineHeight: 1.4 }}>
+          {template.elements[12].content}
+        </div>
+        {/* 푸터 - 페이지 번호 */}
+        <div className="editable-field" contentEditable={false}
+          style={{ position: 'absolute', left: '1680px', top: '990px', fontSize: '20px', fontWeight: '500', color: '#999999', fontFamily: 'Pretendard', letterSpacing: '-0.2px', lineHeight: 1.4, textAlign: 'right', width: '120px', cursor: 'default' }}>
           {getPageNumber(currentSlideIndex)}
         </div>
       </div>

@@ -122,6 +122,13 @@
       animation: pulse-line 1s ease-in-out infinite;
     }
 
+    /* Core Value 이미지 컨테이너 hover */
+    .cv01-img-change-btn { pointer-events: auto; }
+    *:hover > div > .cv01-img-change-btn,
+    *:hover > div > .cv01-img-hint,
+    *:hover > .cv01-img-change-btn,
+    *:hover > .cv01-img-hint { opacity: 1 !important; }
+
     @keyframes pulse-line {
       0%, 100% {
         opacity: 1;
