@@ -262,23 +262,217 @@ function PresentationBuilder() {
     reader.readAsDataURL(file);
   };
 
+  // 슬라이드 캡처 헬퍼 (공통)
+  const captureSlides = async (format, quality) => {
+    const savedIndex = currentSlideIndex;
+    const images = [];
+    for (let i = 0; i < slides.length; i++) {
+      setCurrentSlideIndex(i);
+      await new Promise(resolve => setTimeout(resolve, 400));
+      const canvas = await window.html2canvas(slideRef.current, { scale: 1.5, useCORS: true });
+      images.push(canvas.toDataURL(format, quality));
+    }
+    setCurrentSlideIndex(savedIndex);
+    return images;
+  };
+
   const exportToPDF = async () => {
     if (!window.html2canvas || !window.jspdf) {
       showStatus('라이브러리 로딩 중...');
       return;
     }
     showStatus('PDF 생성 중... ⏳');
+    const images = await captureSlides('image/jpeg', 0.8);
     const pdf = new window.jspdf.jsPDF({ orientation: 'landscape', unit: 'px', format: [1920, 1080] });
-    for (let i = 0; i < slides.length; i++) {
-      setCurrentSlideIndex(i);
-      await new Promise(resolve => setTimeout(resolve, 500));
-      const canvas = await window.html2canvas(slideRef.current, { scale: 2, useCORS: true });
-      const imgData = canvas.toDataURL('image/png');
+    images.forEach((imgData, i) => {
       if (i > 0) pdf.addPage();
-      pdf.addImage(imgData, 'PNG', 0, 0, 1920, 1080);
-    }
+      pdf.addImage(imgData, 'JPEG', 0, 0, 1920, 1080);
+    });
     pdf.save('TransformTrack-Presentation.pdf');
     showStatus('PDF 다운로드 완료! 📥');
+  };
+
+  // px → inch 변환 (PPT는 인치 단위, 1920x1080 = 13.33x7.5 inch)
+  const PX2IN = 1 / 144; // 1920px = 13.33in → 1px ≈ 0.00694in
+
+  const fontWeightToBold = (fw) => {
+    if (!fw) return false;
+    const n = parseInt(fw);
+    return n >= 600 || fw === 'bold';
+  };
+
+  const hexToRgb = (hex) => {
+    if (!hex) return undefined;
+    return hex.replace('#', '');
+  };
+
+  const addTextToPptSlide = (pptSlide, el, text) => {
+    const opts = {
+      x: el.x * PX2IN,
+      y: el.y * PX2IN,
+      w: (el.width || 800) * PX2IN,
+      h: (el.fontSize || 32) * (el.lineHeight || 1.4) * PX2IN * 1.5,
+      fontSize: (el.fontSize || 16) * 0.75,
+      fontFace: 'Pretendard, Arial, sans-serif',
+      color: hexToRgb(el.fill) || '333333',
+      bold: fontWeightToBold(el.fontWeight),
+      align: el.textAlign || 'left',
+      valign: 'top',
+      wrap: true,
+      lineSpacingMultiple: el.lineHeight || 1.4,
+    };
+    pptSlide.addText(text || '', opts);
+  };
+
+  const addRectToPptSlide = (pptSlide, el) => {
+    const opts = {
+      x: el.x * PX2IN,
+      y: el.y * PX2IN,
+      w: el.width * PX2IN,
+      h: el.height * PX2IN,
+      fill: { color: hexToRgb(el.fill) || 'FFFFFF' },
+    };
+    if (el.stroke) {
+      opts.line = { color: hexToRgb(el.stroke), width: (el.strokeWidth || 1) * 0.75 };
+    }
+    if (el.cornerRadius) {
+      opts.rectRadius = el.cornerRadius * PX2IN;
+    }
+    pptSlide.addShape(window.PptxGenJS.ShapeType ? window.PptxGenJS.ShapeType.rect : 'rect', opts);
+  };
+
+  const addImageToPptSlide = (pptSlide, el, src) => {
+    if (!src) return;
+    const opts = {
+      x: el.x * PX2IN,
+      y: el.y * PX2IN,
+      w: el.width * PX2IN,
+      h: el.height * PX2IN,
+      sizing: { type: 'cover', w: el.width * PX2IN, h: el.height * PX2IN },
+    };
+    // base64 data URL 또는 외부 URL
+    if (src.startsWith('data:')) {
+      opts.data = src;
+    } else {
+      opts.path = src;
+    }
+    try { pptSlide.addImage(opts); } catch(e) { /* 이미지 추가 실패 시 무시 */ }
+  };
+
+  const addLineToPptSlide = (pptSlide, el) => {
+    const x1 = el.x1 * PX2IN, y1 = el.y1 * PX2IN;
+    const x2 = el.x2 * PX2IN, y2 = el.y2 * PX2IN;
+    pptSlide.addShape('line', {
+      x: Math.min(x1, x2),
+      y: Math.min(y1, y2),
+      w: Math.abs(x2 - x1) || 0.01,
+      h: Math.abs(y2 - y1) || 0.01,
+      line: { color: hexToRgb(el.stroke) || 'DCDCDC', width: (el.strokeWidth || 1) * 0.75 },
+    });
+  };
+
+  const addTableToPptSlide = (pptSlide, tableData, template) => {
+    const td = tableData || template.defaultTable;
+    if (!td) return;
+    const headers = td.headers || [];
+    const rows = td.rows || [];
+
+    // 테이블 데이터 구성: 첫 행은 헤더 (빈 라벨 열 + 헤더들)
+    const tableRows = [];
+    const headerRow = [{ text: '', options: { fill: { color: '333333' }, color: 'FFFFFF', bold: true, fontSize: 11 } }];
+    headers.forEach(h => {
+      headerRow.push({ text: h || ' ', options: { fill: { color: '333333' }, color: 'FFFFFF', bold: true, fontSize: 11, align: 'center' } });
+    });
+    tableRows.push(headerRow);
+
+    rows.forEach((row, ri) => {
+      const dataRow = [{ text: row.label || ' ', options: { fill: { color: ri % 2 === 0 ? 'F7F7F7' : 'FFFFFF' }, bold: true, fontSize: 10 } }];
+      const cells = row.cells || [];
+      headers.forEach((_, ci) => {
+        dataRow.push({ text: (ci < cells.length ? cells[ci] : ' ') || ' ', options: { fill: { color: ri % 2 === 0 ? 'F7F7F7' : 'FFFFFF' }, fontSize: 10, align: 'center' } });
+      });
+      tableRows.push(dataRow);
+    });
+
+    const colW = [];
+    const totalW = 1680 * PX2IN;
+    const labelW = 240 * PX2IN;
+    colW.push(labelW);
+    const dataColW = (totalW - labelW) / headers.length;
+    headers.forEach(() => colW.push(dataColW));
+
+    pptSlide.addTable(tableRows, {
+      x: 120 * PX2IN,
+      y: 200 * PX2IN,
+      colW: colW,
+      border: { type: 'solid', pt: 0.5, color: 'DCDCDC' },
+      rowH: 750 * PX2IN / (rows.length + 1),
+    });
+  };
+
+  const exportToPPT = async () => {
+    if (!window.PptxGenJS) {
+      showStatus('라이브러리 로딩 중...');
+      return;
+    }
+    showStatus('PPT 생성 중... ⏳');
+
+    try {
+      const pptx = new window.PptxGenJS();
+      pptx.defineLayout({ name: 'CUSTOM', width: 13.333, height: 7.5 });
+      pptx.layout = 'CUSTOM';
+
+      slides.forEach((slideItem) => {
+        const template = ALL_TEMPLATES[slideItem.templateId];
+        if (!template) return;
+        const slideData = slideItem.data || {};
+        const pptSlide = pptx.addSlide();
+
+        // 1) 기본 요소 (rect, text, image, line)
+        template.elements.forEach((el, elIdx) => {
+          if (el.type === 'rect') {
+            addRectToPptSlide(pptSlide, el);
+          }
+          if (el.type === 'line') {
+            addLineToPptSlide(pptSlide, el);
+          }
+          if (el.type === 'text') {
+            const key = 'text_' + elIdx;
+            const text = (el.editable && slideData[key]) ? slideData[key] : el.content;
+            addTextToPptSlide(pptSlide, el, text);
+          }
+          if (el.type === 'image') {
+            const key = 'image_' + elIdx;
+            let src = slideData[key] || el.url || '';
+            if (el.editable && !slideData[key]) src = '';
+            if (src && !src.startsWith('https://via.placeholder.com')) {
+              addImageToPptSlide(pptSlide, el, src);
+            }
+          }
+        });
+
+        // 2) 동적 테이블
+        if (template.dynamicTable) {
+          addTableToPptSlide(pptSlide, slideData.tableData, template);
+        }
+
+        // 3) FAQ 동적 아이템
+        if (slideItem.templateId.startsWith('faq') && slideData.faqItems) {
+          const items = slideData.faqItems;
+          items.forEach((item, i) => {
+            const yBase = 200 + i * 130;
+            addTextToPptSlide(pptSlide, { x: 120, y: yBase, width: 1680, fontSize: 28, fontWeight: '700', fill: '#333333', lineHeight: 1.4 }, item.question || '');
+            addTextToPptSlide(pptSlide, { x: 120, y: yBase + 45, width: 1680, fontSize: 22, fontWeight: '500', fill: '#666666', lineHeight: 1.4 }, item.answer || '');
+          });
+        }
+      });
+
+      await pptx.writeFile({ fileName: 'TransformTrack-Presentation.pptx' });
+      showStatus('PPT 다운로드 완료! 📥');
+    } catch (err) {
+      console.error('PPT 생성 오류:', err);
+      showStatus('PPT 생성 실패: ' + err.message);
+    }
   };
 
 
@@ -539,15 +733,16 @@ function PresentationBuilder() {
             </div>
             <div className="w-px h-6 bg-slate-200 mx-1" />
             <button onClick={() => handleSlideAIEdit()} disabled={slideAILoading} className={`px-3 py-2 rounded-lg font-bold text-sm whitespace-nowrap ${slideAILoading ? 'bg-purple-50 text-purple-300' : 'hover:bg-purple-100 text-purple-600'}`}>
-              {slideAILoading ? '⏳ AI 작업중...' : '✨ AI 수정'}
+              {slideAILoading ? '⏳ AI 작업중...' : '✨ 슬라이드 수정'}
             </button>
             <button onClick={handleSlidePDFInsert} disabled={slideAILoading} className={`px-3 py-2 rounded-lg font-bold text-sm whitespace-nowrap ${slideAILoading ? 'bg-emerald-50 text-emerald-300' : 'hover:bg-emerald-100 text-emerald-600'}`}>
-              📄 PDF 삽입
+              📄 PDF 추가
             </button>
             <div className="w-px h-6 bg-slate-200 mx-1" />
             <button onClick={deleteSlide} className="px-3 py-2 hover:bg-red-100 text-red-600 rounded-lg font-bold text-sm">삭제</button>
             <div className="w-px h-6 bg-slate-200 mx-1" />
             <button onClick={exportToPDF} className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold shadow-md shadow-emerald-100"><span className="text-[11px] whitespace-nowrap">📥 PDF</span></button>
+            <button onClick={exportToPPT} className="flex items-center gap-2 px-4 py-2.5 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-bold shadow-md shadow-orange-100"><span className="text-[11px] whitespace-nowrap">📥 PPT</span></button>
           </div>
         </div>
       </main>
