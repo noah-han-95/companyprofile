@@ -2,18 +2,11 @@ function OnboardingModal({ onComplete, onSkip, slides }) {
   const [step, setStep] = useState('upload'); // upload | configure | loading | done
   const [file, setFile] = useState(null);
   const [extractedText, setExtractedText] = useState('');
-  const [provider, setProvider] = useState('gemini');
   const [apiKey, setApiKey] = useState(() => {
-    return localStorage.getItem('transformtrack-ai-apikey-' + 'gemini') || '';
+    return localStorage.getItem('transformtrack-ai-apikey-gemini') || '';
   });
   const [error, setError] = useState('');
   const [progress, setProgress] = useState('');
-
-  // provider 변경 시 저장된 key 불러오기
-  useEffect(() => {
-    const saved = localStorage.getItem('transformtrack-ai-apikey-' + provider);
-    setApiKey(saved || '');
-  }, [provider]);
 
   const handleFileSelect = async (e) => {
     const f = e.target.files[0];
@@ -60,14 +53,14 @@ function OnboardingModal({ onComplete, onSkip, slides }) {
     }
 
     // API Key 저장
-    localStorage.setItem('transformtrack-ai-apikey-' + provider, apiKey);
+    localStorage.setItem('transformtrack-ai-apikey-gemini', apiKey);
 
     setStep('loading');
     setError('');
     setProgress('AI가 문서를 분석하고 슬라이드를 생성하는 중...');
 
     try {
-      const newSlides = await mapContentToSlides(provider, apiKey, slides, extractedText);
+      const newSlides = await mapContentToSlides('gemini', apiKey, slides, extractedText);
       setStep('done');
       setProgress('');
       setTimeout(() => onComplete(newSlides), 800);
@@ -77,8 +70,6 @@ function OnboardingModal({ onComplete, onSkip, slides }) {
       setProgress('');
     }
   };
-
-  const providerLabel = provider === 'openai' ? 'OpenAI (GPT-4o-mini)' : 'Google Gemini (2.0 Flash)';
 
   return (
     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[300] flex items-center justify-center p-4">
@@ -129,37 +120,14 @@ function OnboardingModal({ onComplete, onSkip, slides }) {
                 >변경</button>
               </div>
 
-              {/* AI Provider 선택 */}
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">AI 엔진 선택</label>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => setProvider('gemini')}
-                    className={`flex-1 py-2.5 px-4 rounded-xl text-sm font-bold border-2 transition ${
-                      provider === 'gemini'
-                        ? 'border-blue-500 bg-blue-50 text-blue-700'
-                        : 'border-slate-200 text-slate-500 hover:border-slate-300'
-                    }`}
-                  >Google Gemini</button>
-                  <button
-                    onClick={() => setProvider('openai')}
-                    className={`flex-1 py-2.5 px-4 rounded-xl text-sm font-bold border-2 transition ${
-                      provider === 'openai'
-                        ? 'border-green-500 bg-green-50 text-green-700'
-                        : 'border-slate-200 text-slate-500 hover:border-slate-300'
-                    }`}
-                  >OpenAI GPT</button>
-                </div>
-              </div>
-
               {/* API Key 입력 */}
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">{providerLabel} API Key</label>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">Google Gemini API Key</label>
                 <input
                   type="password"
                   value={apiKey}
                   onChange={(e) => setApiKey(e.target.value)}
-                  placeholder={provider === 'openai' ? 'sk-...' : 'AIza...'}
+                  placeholder="AIza..."
                   className="w-full px-4 py-2.5 border-2 border-slate-200 rounded-xl text-sm focus:border-indigo-400 focus:outline-none"
                 />
                 <p className="text-xs text-slate-400 mt-1">API Key는 브라우저에 로컬 저장되며 외부로 전송되지 않습니다.</p>

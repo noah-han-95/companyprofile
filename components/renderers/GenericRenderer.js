@@ -224,7 +224,7 @@ function GenericRenderer({ template, data, onUpdate, handleTextEdit, handleImage
         if (element.type === 'image' && element.editable) {
           const value = data[elementId] || (element.placeholder ? 'https://via.placeholder.com/' + element.width + 'x' + element.height + '/f0f0f0/999999?text=Image' : element.url);
           return (
-            <div key={idx} className="editable-image absolute" onClick={() => handleImageClick(elementId)} style={{ left: `${element.x}px`, top: `${element.y}px`, width: `${element.width}px`, height: `${element.height}px` }}>
+            <div key={idx} className="editable-image absolute" onClick={(e) => handleImageClick(elementId, e)} style={{ left: `${element.x}px`, top: `${element.y}px`, width: `${element.width}px`, height: `${element.height}px` }}>
               <img src={value} alt="" className="w-full h-full object-cover" />
             </div>
           );

@@ -4,7 +4,6 @@ function PresentationBuilder() {
   const [statusMessage, setStatusMessage] = useState(null);
   const [draggedIndex, setDraggedIndex] = useState(null);
   const [dropTargetIndex, setDropTargetIndex] = useState(null);
-  const [showPdfUpload, setShowPdfUpload] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(true);
 
   // 기본 슬라이드 (data는 항상 초기화, templateId는 localStorage에서 복원)
@@ -181,55 +180,6 @@ function PresentationBuilder() {
     setDropTargetIndex(null);
   };
 
-  // PDF 업로드 및 파싱
-  const handlePdfUpload = async (file) => {
-    if (!file || file.type !== 'application/pdf') {
-      showStatus('PDF 파일만 업로드 가능합니다.');
-      return;
-    }
-
-    showStatus('PDF 분석 중... ⏳');
-
-    try {
-      const arrayBuffer = await file.arrayBuffer();
-      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-      let extractedText = '';
-
-      for (let i = 1; i <= pdf.numPages; i++) {
-        const page = await pdf.getPage(i);
-        const textContent = await page.getTextContent();
-        const pageText = textContent.items.map(item => item.str).join(' ');
-        extractedText += pageText + '\n\n';
-      }
-
-      // 텍스트 파싱 및 슬라이드 자동 생성
-      parseAndPopulateSlides(extractedText);
-      setShowPdfUpload(false);
-      showStatus('PDF 내용이 슬라이드에 적용되었습니다! ✨');
-    } catch (error) {
-      console.error('PDF 파싱 오류:', error);
-      showStatus('PDF 처리 중 오류가 발생했습니다.');
-    }
-  };
-
-  const parseAndPopulateSlides = (text) => {
-    // 간단한 키워드 매칭으로 슬라이드 자동 채우기
-    const newSlides = [...slides];
-
-    // 회사명, 제목 등 추출
-    const lines = text.split('\n').filter(l => l.trim());
-
-    // Main Cover 업데이트
-    if (newSlides[0] && lines.length > 0) {
-      const mainCoverData = { ...newSlides[0].data };
-      if (lines[0]) mainCoverData['text_2'] = lines[0]; // 제목
-      if (lines[1]) mainCoverData['text_3'] = lines[1]; // 설명
-      newSlides[0] = { ...newSlides[0], data: mainCoverData };
-    }
-
-    setSlides(newSlides);
-  };
-
   // AI 온보딩 완료 핸들러
   const handleOnboardingComplete = (newSlides) => {
     const addedCount = newSlides.length - slides.length;
@@ -312,9 +262,6 @@ function PresentationBuilder() {
         if (showTemplateModal) {
           setShowTemplateModal(false);
           setSelectedCategory(null);
-        }
-        if (showPdfUpload) {
-          setShowPdfUpload(false);
         }
         if (showOnboarding) {
           setShowOnboarding(false);
@@ -399,7 +346,7 @@ function PresentationBuilder() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [currentSlideIndex, slides, copiedSlide, showTemplateModal, showPdfUpload, showOnboarding]);
+  }, [currentSlideIndex, slides, copiedSlide, showTemplateModal, showOnboarding]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -439,7 +386,6 @@ function PresentationBuilder() {
           <span className={`font-bold ${theme.textMain} tracking-tight text-base`}>TransformTrack 소개서 빌더</span>
           <div className={`hidden sm:flex px-2 py-0.5 rounded text-[10px] font-bold border ${theme.border} ${theme.textSub}`}>1920 x 1080</div>
           <button onClick={() => setShowOnboarding(true)} className="px-3 py-1.5 text-xs font-bold bg-indigo-100 text-indigo-600 hover:bg-indigo-200 rounded-lg">🤖 AI 자동생성</button>
-          <button onClick={() => setShowPdfUpload(true)} className="px-3 py-1.5 text-xs font-bold bg-emerald-100 text-emerald-700 hover:bg-emerald-200 rounded-lg">📄 PDF 업로드</button>
         </div>
 
         {/* 현재 카테고리의 템플릿 Type 선택 */}
@@ -563,28 +509,6 @@ function PresentationBuilder() {
                   </div>
                 );
               })}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* PDF 업로드 모달 */}
-      {showPdfUpload && (
-        <div className="absolute inset-0 bg-slate-900/30 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden">
-            <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-emerald-50/30">
-              <h3 className="font-bold text-sm uppercase tracking-widest text-emerald-600">PDF 업로드</h3>
-              <button onClick={() => setShowPdfUpload(false)} className="text-slate-400 hover:text-slate-600 p-1 text-xl">✕</button>
-            </div>
-            <div className="p-6">
-              <p className="text-sm text-slate-600 mb-4">소개서 PDF 파일을 업로드하면 내용을 분석하여 자동으로 슬라이드에 배치합니다.</p>
-              <input
-                type="file"
-                accept="application/pdf"
-                onChange={(e) => e.target.files[0] && handlePdfUpload(e.target.files[0])}
-                className="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 cursor-pointer"
-              />
-              <p className="text-xs text-slate-400 mt-2">* PDF 파일 내 텍스트를 추출하여 슬라이드 내용을 자동으로 채웁니다.</p>
             </div>
           </div>
         </div>

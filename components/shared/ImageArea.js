@@ -32,7 +32,7 @@ function ImageArea(props) {
       overflow: 'hidden',
       cursor: cursorStyle
     }, style),
-    onClick: function(e) { e.stopPropagation(); if (!imageSrc) handleImageClick(imageKey); },
+    onClick: function(e) { e.stopPropagation(); if (!imageSrc) handleImageClick(imageKey, e); },
     onMouseDown: imageSrc && h ? h.onMouseDown : undefined,
     onMouseMove: imageSrc && h ? h.onMouseMove : undefined,
     onMouseUp: imageSrc && h ? h.onMouseUp : undefined,
@@ -47,7 +47,7 @@ function ImageArea(props) {
         userSelect: 'none', pointerEvents: 'none'
       }}),
       React.createElement('button', {
-        onClick: function(e) { e.stopPropagation(); handleImageClick(imageKey); },
+        onClick: function(e) { e.stopPropagation(); handleImageClick(imageKey, e); },
         className: btnClass,
         style: {
           position: 'absolute', bottom: btnBottom, left: '50%', transform: 'translateX(-50%)',
