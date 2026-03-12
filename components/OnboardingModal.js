@@ -1,15 +1,11 @@
 function OnboardingModal({ onComplete, onSkip, slides }) {
-  const [step, setStep] = useState('upload'); // upload | configure | loading | done
+  const [step, setStep] = useState('upload'); // upload | loading | done
   const [file, setFile] = useState(null);
   const [extractedText, setExtractedText] = useState('');
-  const [apiKey, setApiKey] = useState(() => {
-    return localStorage.getItem('transformtrack-ai-apikey-gemini') || '';
-  });
   const [error, setError] = useState('');
   const [progress, setProgress] = useState('');
 
-  const handleFileSelect = async (e) => {
-    const f = e.target.files[0];
+  const handleFileAndGenerate = async (f) => {
     if (!f) return;
     setFile(f);
     setError('');
@@ -17,58 +13,28 @@ function OnboardingModal({ onComplete, onSkip, slides }) {
     try {
       setProgress('파일에서 텍스트를 추출하는 중...');
       const text = await extractTextFromFile(f);
-      setExtractedText(text);
-      setStep('configure');
-      setProgress('');
-    } catch (err) {
-      setError(err.message);
-      setProgress('');
-    }
-  };
-
-  const handleDrop = async (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    const f = e.dataTransfer.files[0];
-    if (!f) return;
-    setFile(f);
-    setError('');
-
-    try {
-      setProgress('파일에서 텍스트를 추출하는 중...');
-      const text = await extractTextFromFile(f);
-      setExtractedText(text);
-      setStep('configure');
-      setProgress('');
-    } catch (err) {
-      setError(err.message);
-      setProgress('');
-    }
-  };
-
-  const handleGenerate = async () => {
-    if (!apiKey.trim()) {
-      setError('API Key를 입력해주세요.');
-      return;
-    }
-
-    // API Key 저장
-    localStorage.setItem('transformtrack-ai-apikey-gemini', apiKey);
-
-    setStep('loading');
-    setError('');
-    setProgress('AI가 문서를 분석하고 슬라이드를 생성하는 중...');
-
-    try {
-      const newSlides = await mapContentToSlides('gemini', apiKey, slides, extractedText);
+      setProgress('AI가 문서를 분석하고 슬라이드를 생성하는 중...');
+      setStep('loading');
+      const newSlides = await mapContentToSlides(slides, text);
       setStep('done');
       setProgress('');
       setTimeout(() => onComplete(newSlides), 800);
     } catch (err) {
       setError(err.message);
-      setStep('configure');
+      setStep('upload');
+      setFile(null);
       setProgress('');
     }
+  };
+
+  const handleFileSelect = (e) => {
+    handleFileAndGenerate(e.target.files[0]);
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    handleFileAndGenerate(e.dataTransfer.files[0]);
   };
 
   return (
@@ -104,46 +70,7 @@ function OnboardingModal({ onComplete, onSkip, slides }) {
             </div>
           )}
 
-          {/* Step 2: AI 설정 */}
-          {step === 'configure' && (
-            <div className="space-y-4">
-              {/* 업로드된 파일 표시 */}
-              <div className="flex items-center gap-3 p-3 bg-emerald-50 rounded-xl">
-                <span className="text-xl">✅</span>
-                <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-emerald-700 text-sm truncate">{file?.name}</p>
-                  <p className="text-xs text-emerald-500">텍스트 추출 완료 ({extractedText.length.toLocaleString()}자)</p>
-                </div>
-                <button
-                  onClick={() => { setStep('upload'); setFile(null); setExtractedText(''); }}
-                  className="text-xs text-slate-400 hover:text-slate-600"
-                >변경</button>
-              </div>
-
-              {/* API Key 입력 */}
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">Google Gemini API Key</label>
-                <input
-                  type="password"
-                  value={apiKey}
-                  onChange={(e) => setApiKey(e.target.value)}
-                  placeholder="AIza..."
-                  className="w-full px-4 py-2.5 border-2 border-slate-200 rounded-xl text-sm focus:border-indigo-400 focus:outline-none"
-                />
-                <p className="text-xs text-slate-400 mt-1">API Key는 브라우저에 로컬 저장되며 외부로 전송되지 않습니다.</p>
-              </div>
-
-              {/* 생성 버튼 */}
-              <button
-                onClick={handleGenerate}
-                className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-sm shadow-lg shadow-indigo-200 transition"
-              >
-                AI로 슬라이드 자동 채우기
-              </button>
-            </div>
-          )}
-
-          {/* Step 3: 로딩 */}
+          {/* Step 2: 로딩 */}
           {step === 'loading' && (
             <div className="text-center py-8">
               <div className="inline-block w-12 h-12 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mb-4"></div>

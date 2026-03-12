@@ -1,4 +1,47 @@
-// aiService.js — AI API 연동 (OpenAI / Gemini)
+// aiService.js — AI API 연동 (Gemini)
+var GEMINI_API_KEY = 'AIzaSyD8kYRnUJ4MWXoVgRbk5TNPaAc0g7BJPp8';
+
+/**
+ * Gemini 이미지 생성 (gemini-2.5-flash-image)
+ * 이미지가 반환되지 않으면 최대 2회 재시도
+ */
+async function generateAIImage(userPrompt) {
+  var fullPrompt = 'Generate a high-quality image for a company presentation slide. Description: ' + userPrompt;
+  var maxRetries = 2;
+
+  for (var attempt = 0; attempt <= maxRetries; attempt++) {
+    var response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=' + GEMINI_API_KEY, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: fullPrompt }] }],
+        generationConfig: { responseModalities: ['IMAGE', 'TEXT'] }
+      })
+    });
+
+    if (!response.ok) {
+      var err = await response.json().catch(function() { return {}; });
+      throw new Error('이미지 생성 오류: ' + (err.error?.message || response.statusText));
+    }
+
+    var result = await response.json();
+    var candidates = result.candidates;
+    if (candidates && candidates[0] && candidates[0].content && candidates[0].content.parts) {
+      var parts = candidates[0].content.parts;
+      for (var i = 0; i < parts.length; i++) {
+        if (parts[i].inlineData) {
+          var mime = parts[i].inlineData.mimeType || 'image/png';
+          return 'data:' + mime + ';base64,' + parts[i].inlineData.data;
+        }
+      }
+    }
+
+    // 마지막 시도가 아니면 재시도
+    if (attempt < maxRetries) continue;
+  }
+
+  throw new Error('이미지 생성에 실패했습니다. 다른 설명으로 다시 시도해주세요.');
+}
 
 /**
  * 슬라이드 스키마를 자동 생성
@@ -277,6 +320,46 @@ function parseAIResponse(content) {
 }
 
 /**
+ * tableData 정규화: headers/rows/cells 누락·불일치 시 공백으로 채움
+ */
+function normalizeTableData(td) {
+  if (!td || typeof td !== 'object') return null;
+
+  var headers = Array.isArray(td.headers) ? td.headers : [];
+  if (headers.length === 0) return null;
+
+  // headers 값이 빈값이면 공백으로
+  headers = headers.map(function(h) { return (h != null && h !== '') ? String(h) : ' '; });
+
+  var rows = Array.isArray(td.rows) ? td.rows : [];
+  rows = rows.map(function(row) {
+    if (!row || typeof row !== 'object') {
+      row = { label: ' ', cells: [] };
+    }
+    var label = (row.label != null && row.label !== '') ? String(row.label) : ' ';
+    var cells = Array.isArray(row.cells) ? row.cells : [];
+
+    // cells 수를 headers 수에 맞춤
+    var normalized = [];
+    for (var i = 0; i < headers.length; i++) {
+      var val = (i < cells.length && cells[i] != null && cells[i] !== '') ? String(cells[i]) : ' ';
+      normalized.push(val);
+    }
+
+    var result = { label: label, cells: normalized };
+    if (row.mergedCols) result.mergedCols = row.mergedCols;
+    return result;
+  });
+
+  // rows가 비어있으면 기본 1행
+  if (rows.length === 0) {
+    rows = [{ label: ' ', cells: headers.map(function() { return ' '; }) }];
+  }
+
+  return { headers: headers, rows: rows };
+}
+
+/**
  * AI 응답을 슬라이드 데이터에 매핑
  * aiParsed: { existing: [...], newSlides: [...] }
  */
@@ -293,6 +376,12 @@ function mapAIResponseToSlides(aiParsed, currentSlides) {
     var idx = item.slideIndex;
     if (idx < 0 || idx >= resultSlides.length) return;
     if (!item.data) return;
+
+    // tableData 정규화
+    if (item.data.tableData) {
+      item.data.tableData = normalizeTableData(item.data.tableData);
+      if (!item.data.tableData) delete item.data.tableData;
+    }
 
     var slideData = resultSlides[idx].data;
     Object.keys(item.data).forEach(function(key) {
@@ -312,32 +401,138 @@ function mapAIResponseToSlides(aiParsed, currentSlides) {
 
   validNewSlides.forEach(function(ns) {
     var insertIdx = Math.min(ns.insertAfter + 1, resultSlides.length);
+    var nsData = ns.data || {};
+
+    // 새 슬라이드의 tableData도 정규화
+    if (nsData.tableData) {
+      nsData.tableData = normalizeTableData(nsData.tableData);
+      if (!nsData.tableData) delete nsData.tableData;
+    }
+
     var newSlide = {
       id: 'ai_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
       templateId: ns.templateId,
-      data: ns.data || {}
+      data: nsData
     };
     resultSlides.splice(insertIdx, 0, newSlide);
   });
+
+  // 유효하지 않은 templateId를 가진 슬라이드 제거
+  resultSlides = resultSlides.filter(function(s) {
+    return s.templateId && ALL_TEMPLATES[s.templateId];
+  });
+
+  // 슬라이드가 전부 제거된 경우 원본 유지
+  if (resultSlides.length === 0) return currentSlides;
 
   return resultSlides;
 }
 
 /**
+ * 단일 슬라이드 AI 수정 프롬프트 생성
+ */
+function buildSingleSlidePrompt(slide, documentText) {
+  var template = ALL_TEMPLATES[slide.templateId];
+  if (!template) return '';
+
+  var fields = {};
+  template.elements.forEach(function(el, elIdx) {
+    if (el.type === 'text' && el.editable) {
+      var key = 'text_' + elIdx;
+      fields[key] = slide.data[key] || el.content;
+    }
+  });
+
+  var fieldDesc = Object.keys(fields).map(function(key) {
+    return '  "' + key + '": "' + fields[key] + '"';
+  }).join(',\n');
+
+  var hasTable = template.dynamicTable && template.defaultTable;
+  var hasFaq = slide.templateId.indexOf('faq') === 0;
+
+  if (hasTable) {
+    fieldDesc += ',\n  "tableData": { "headers": ["헤더1", "헤더2"], "rows": [{"label": "항목", "cells": ["값1", "값2"]}] }';
+  }
+  if (hasFaq) {
+    fieldDesc += ',\n  "faqItems": [{"id": "faq1", "question": "Q1. 질문?", "answer": "답변"}]';
+  }
+
+  var prompt = '당신은 회사 소개서 슬라이드 콘텐츠를 생성하는 전문가입니다.\n\n';
+
+  if (documentText) {
+    prompt += '아래는 참고할 문서 텍스트입니다:\n---\n' + documentText.substring(0, 8000) + '\n---\n\n';
+  }
+
+  prompt += '아래 슬라이드의 내용을 ' + (documentText ? '문서 내용을 바탕으로 ' : '') + '더 전문적이고 매력적으로 다시 작성해주세요.\n' +
+    '카테고리: ' + template.category + '\n' +
+    '용도: ' + template.category + ' 슬라이드\n\n' +
+    '현재 슬라이드 필드:\n{\n' + fieldDesc + '\n}\n\n' +
+    '규칙:\n' +
+    '1. 위와 동일한 JSON 키 구조로 응답하세요.\n' +
+    '2. 한국어로 작성하세요.\n' +
+    '3. 각 필드의 용도에 맞는 내용을 채우세요.\n';
+
+  if (hasTable) {
+    prompt += '4. tableData는 반드시 headers 배열과 rows 배열을 포함하세요. 각 row는 label과 cells를 가져야 하고, cells 수는 headers 수와 같아야 합니다.\n';
+  }
+  if (hasFaq) {
+    prompt += '4. faqItems는 id, question, answer를 가진 객체 배열이어야 합니다.\n';
+  }
+
+  prompt += '\nJSON 객체만 응답하세요. 다른 텍스트는 포함하지 마세요.';
+  return prompt;
+}
+
+/**
+ * 단일 슬라이드 AI 수정
+ */
+async function aiEditSingleSlide(slide, documentText) {
+  var prompt = buildSingleSlidePrompt(slide, documentText);
+
+  // callGemini + parseAIResponse를 거치지 않고 직접 호출하여 단순 JSON 객체를 받음
+  var response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + GEMINI_API_KEY, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      contents: [{ parts: [{ text: prompt }] }],
+      generationConfig: { temperature: 0.3, maxOutputTokens: 8000 }
+    })
+  });
+
+  if (!response.ok) {
+    var err = await response.json().catch(function() { return {}; });
+    throw new Error('AI 수정 오류: ' + (err.error?.message || response.statusText));
+  }
+
+  var result = await response.json();
+  var content = result.candidates[0].content.parts[0].text.trim();
+
+  // JSON 추출
+  var cleaned = content.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
+  var objStart = cleaned.indexOf('{');
+  var objEnd = cleaned.lastIndexOf('}');
+  if (objStart === -1 || objEnd === -1) {
+    throw new Error('AI 응답에서 JSON을 찾을 수 없습니다.');
+  }
+
+  var data = JSON.parse(cleaned.substring(objStart, objEnd + 1));
+
+  // tableData 정규화
+  if (data.tableData) {
+    data.tableData = normalizeTableData(data.tableData);
+    if (!data.tableData) delete data.tableData;
+  }
+
+  return data;
+}
+
+/**
  * 전체 AI 콘텐츠 매핑 오케스트레이터
  */
-async function mapContentToSlides(provider, apiKey, slides, documentText) {
+async function mapContentToSlides(slides, documentText) {
   var schema = buildSlideSchema(slides);
   var prompt = buildAIPrompt(schema, documentText);
 
-  var aiResponse;
-  if (provider === 'openai') {
-    aiResponse = await callOpenAI(apiKey, prompt);
-  } else if (provider === 'gemini') {
-    aiResponse = await callGemini(apiKey, prompt);
-  } else {
-    throw new Error('지원하지 않는 AI 제공자입니다.');
-  }
-
+  var aiResponse = await callGemini(GEMINI_API_KEY, prompt);
   return mapAIResponseToSlides(aiResponse, slides);
 }

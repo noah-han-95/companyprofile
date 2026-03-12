@@ -139,3 +139,9 @@
         box-shadow: 0 0 12px rgba(79, 70, 229, 0.8);
       }
     }
+
+    @keyframes progressIndeterminate {
+      0% { width: 20%; margin-left: 0; }
+      50% { width: 60%; margin-left: 20%; }
+      100% { width: 20%; margin-left: 80%; }
+    }

@@ -1,9 +1,23 @@
 function TableRenderer({ template, data, onUpdate, handleTextEdit, getPageNumber, currentSlideIndex }) {
 
   if (template.id === 'table01' && template.dynamicTable) {
-    const tableData = data.tableData || template.defaultTable;
-    const headers = tableData.headers;
-    const rows = tableData.rows;
+    const rawTable = data.tableData || template.defaultTable;
+    // 방어: headers/rows 누락 시 기본값, cells 수 맞추기
+    const headers = (Array.isArray(rawTable.headers) && rawTable.headers.length > 0)
+      ? rawTable.headers.map(h => (h != null && h !== '') ? String(h) : ' ')
+      : template.defaultTable.headers;
+    const rows = (Array.isArray(rawTable.rows) && rawTable.rows.length > 0)
+      ? rawTable.rows.map(r => {
+          const label = (r && r.label != null && r.label !== '') ? String(r.label) : ' ';
+          const cells = Array.isArray(r?.cells)
+            ? headers.map((_, i) => (i < r.cells.length && r.cells[i] != null && r.cells[i] !== '') ? String(r.cells[i]) : ' ')
+            : headers.map(() => ' ');
+          const row = { label, cells };
+          if (r?.mergedCols) row.mergedCols = r.mergedCols;
+          return row;
+        })
+      : template.defaultTable.rows;
+    const tableData = { headers, rows };
 
     // 테이블 레이아웃 상수
     const TABLE_X = 120;

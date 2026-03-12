@@ -4,8 +4,10 @@ function SlideCanvas({ template, data, onUpdate, onImageUpload, currentSlideInde
   const [, forceRender] = useState(0);
   const [undoStack, setUndoStack] = useState([]);
 
-  // 이미지 선택 팝업 상태
-  const [imagePopup, setImagePopup] = useState({ show: false, elementId: null, x: 0, y: 0 });
+  // 이미지 선택 팝업 상태: mode = 'select' | 'prompt' | 'generating'
+  const [imagePopup, setImagePopup] = useState({ show: false, elementId: null, x: 0, y: 0, mode: 'select' });
+  const [aiPrompt, setAiPrompt] = useState('');
+  const [aiImageError, setAiImageError] = useState('');
 
   // 이미지 드래그 상태
   const [isDraggingImg, setIsDraggingImg] = useState(false);
@@ -82,18 +84,24 @@ function SlideCanvas({ template, data, onUpdate, onImageUpload, currentSlideInde
     onUpdate(elementId, e.target.innerText);
   };
 
+  const closeImagePopup = () => {
+    setImagePopup({ show: false, elementId: null, x: 0, y: 0, mode: 'select' });
+    setAiPrompt('');
+    setAiImageError('');
+  };
+
   const handleImageClick = (elementId, e) => {
     let x = window.innerWidth / 2, y = window.innerHeight / 2;
     if (e && e.clientX !== undefined) {
       x = e.clientX;
       y = e.clientY;
     }
-    setImagePopup({ show: true, elementId, x, y });
+    setImagePopup({ show: true, elementId, x, y, mode: 'select' });
   };
 
   const handleImageUploadDirect = () => {
     const elementId = imagePopup.elementId;
-    setImagePopup({ show: false, elementId: null, x: 0, y: 0 });
+    closeImagePopup();
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = 'image/*';
@@ -103,10 +111,20 @@ function SlideCanvas({ template, data, onUpdate, onImageUpload, currentSlideInde
     input.click();
   };
 
-  const handleImageAIGenerate = () => {
-    setImagePopup({ show: false, elementId: null, x: 0, y: 0 });
-    // TODO: Gemini Imagen API 연동 예정
-    alert('AI 이미지 생성 기능은 준비 중입니다.');
+  const handleImageAIGenerate = async () => {
+    if (!aiPrompt.trim()) return;
+    const elementId = imagePopup.elementId;
+    setAiImageError('');
+    setImagePopup(prev => ({ ...prev, mode: 'generating' }));
+
+    try {
+      const dataUrl = await generateAIImage(aiPrompt.trim());
+      onUpdate(elementId, dataUrl);
+      closeImagePopup();
+    } catch (err) {
+      setAiImageError(err.message);
+      setImagePopup(prev => ({ ...prev, mode: 'prompt' }));
+    }
   };
 
   // 섹션 삭제 핸들러 (애니메이션 + Undo 지원)
@@ -191,36 +209,97 @@ function SlideCanvas({ template, data, onUpdate, onImageUpload, currentSlideInde
     }
   }, [template.id]);
 
-  // 이미지 팝업 외부 클릭 닫기
+  // 이미지 팝업 외부 클릭 닫기 (생성중에는 닫지 않음)
   useEffect(() => {
-    if (!imagePopup.show) return;
-    const handleClickOutside = () => setImagePopup({ show: false, elementId: null, x: 0, y: 0 });
+    if (!imagePopup.show || imagePopup.mode === 'generating') return;
+    const handleClickOutside = () => closeImagePopup();
     const timer = setTimeout(() => window.addEventListener('click', handleClickOutside), 0);
     return () => { clearTimeout(timer); window.removeEventListener('click', handleClickOutside); };
-  }, [imagePopup.show]);
+  }, [imagePopup.show, imagePopup.mode]);
 
   // 이미지 선택 팝업 렌더링
   const imagePopupOverlay = imagePopup.show && (
     <div
-      className="fixed z-[200]"
-      style={{ left: imagePopup.x + 'px', top: imagePopup.y + 'px' }}
-      onClick={(e) => e.stopPropagation()}
+      className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-900/30 backdrop-blur-sm"
+      onClick={(e) => { if (imagePopup.mode !== 'generating') { e.stopPropagation(); closeImagePopup(); } }}
     >
-      <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 py-4 w-80"
-        style={{ transform: 'translate(-50%, -50%)' }}>
-        <p className="px-6 pb-3 text-sm font-bold text-slate-500 tracking-wide">이미지 추가 방법</p>
-        <button
-          onClick={handleImageUploadDirect}
-          className="w-full px-6 py-4 text-left text-lg font-bold text-slate-700 hover:bg-indigo-50 hover:text-indigo-700 transition flex items-center gap-4"
-        >
-          <span className="text-2xl">📁</span> 직접 업로드
-        </button>
-        <button
-          onClick={handleImageAIGenerate}
-          className="w-full px-6 py-4 text-left text-lg font-bold text-slate-400 hover:bg-slate-50 transition flex items-center gap-4"
-        >
-          <span className="text-2xl">✨</span> AI로 생성 <span className="text-sm text-slate-400 ml-auto bg-slate-100 px-3 py-1 rounded-full">준비중</span>
-        </button>
+      <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 w-[520px] max-w-[90vw] overflow-hidden"
+        onClick={(e) => e.stopPropagation()}>
+
+        {/* 모드: 선택 */}
+        {imagePopup.mode === 'select' && <>
+          <div className="px-8 pt-7 pb-4">
+            <p className="text-base font-bold text-slate-600 tracking-wide">이미지 추가 방법</p>
+          </div>
+          <div className="pb-5 px-2">
+            <button
+              onClick={handleImageUploadDirect}
+              className="w-full px-8 py-5 text-left text-xl font-bold text-slate-700 hover:bg-indigo-50 hover:text-indigo-700 transition flex items-center gap-5 rounded-2xl"
+            >
+              <span className="text-3xl">📁</span> 직접 업로드
+            </button>
+            <button
+              onClick={() => setImagePopup(prev => ({ ...prev, mode: 'prompt' }))}
+              className="w-full px-8 py-5 text-left text-xl font-bold text-slate-700 hover:bg-purple-50 hover:text-purple-700 transition flex items-center gap-5 rounded-2xl"
+            >
+              <span className="text-3xl">✨</span> AI로 생성
+            </button>
+          </div>
+        </>}
+
+        {/* 모드: 프롬프트 입력 */}
+        {imagePopup.mode === 'prompt' && <>
+          <div className="px-8 pt-7 pb-3 flex items-center gap-3">
+            <button onClick={() => { setImagePopup(prev => ({ ...prev, mode: 'select' })); setAiImageError(''); }}
+              className="text-slate-400 hover:text-slate-600 text-xl">←</button>
+            <p className="text-base font-bold text-slate-600 tracking-wide">AI 이미지 생성</p>
+          </div>
+          <div className="px-8 pb-7 pt-3">
+            <p className="text-sm text-slate-400 mb-4">원하는 이미지를 설명해주세요.</p>
+            <textarea
+              value={aiPrompt}
+              onChange={(e) => { setAiPrompt(e.target.value); setAiImageError(''); }}
+              placeholder="예: 현대적인 오피스 환경에서 협업하는 팀원들"
+              className="w-full px-5 py-4 border-2 border-slate-200 rounded-xl text-base focus:border-purple-400 focus:outline-none resize-none"
+              rows={4}
+              autoFocus
+              onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleImageAIGenerate(); } }}
+            />
+            {aiImageError && (
+              <div className="mt-3 p-3 bg-red-50 rounded-xl">
+                <p className="text-sm text-red-500 font-medium">{aiImageError}</p>
+              </div>
+            )}
+            <button
+              onClick={handleImageAIGenerate}
+              disabled={!aiPrompt.trim()}
+              className={`w-full mt-4 py-4 rounded-xl font-bold text-base transition shadow-lg ${
+                aiPrompt.trim()
+                  ? 'bg-purple-600 hover:bg-purple-700 text-white shadow-purple-200'
+                  : 'bg-slate-100 text-slate-300 cursor-not-allowed shadow-none'
+              }`}
+            >
+              {aiImageError ? '다시 시도하기' : '이미지 생성하기'}
+            </button>
+          </div>
+        </>}
+
+        {/* 모드: 생성중 */}
+        {imagePopup.mode === 'generating' && <>
+          <div className="px-8 py-14 text-center">
+            <div className="relative w-20 h-20 mx-auto mb-6">
+              <div className="absolute inset-0 rounded-full border-4 border-purple-100"></div>
+              <div className="absolute inset-0 rounded-full border-4 border-purple-500 border-t-transparent animate-spin"></div>
+              <span className="absolute inset-0 flex items-center justify-center text-3xl">✨</span>
+            </div>
+            <p className="font-bold text-slate-700 text-xl">AI가 이미지를 생성하고 있어요</p>
+            <p className="text-base text-slate-400 mt-3">잠시만 기다려주세요...</p>
+            <div className="mt-5 mx-auto w-64 h-2 bg-slate-100 rounded-full overflow-hidden">
+              <div className="h-full bg-gradient-to-r from-purple-400 to-indigo-500 rounded-full" style={{ animation: 'progressIndeterminate 2s ease-in-out infinite' }}></div>
+            </div>
+            <p className="text-sm text-slate-300 mt-4 truncate px-6">"{aiPrompt}"</p>
+          </div>
+        </>}
       </div>
     </div>
   );

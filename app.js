@@ -5,6 +5,7 @@ function PresentationBuilder() {
   const [draggedIndex, setDraggedIndex] = useState(null);
   const [dropTargetIndex, setDropTargetIndex] = useState(null);
   const [showOnboarding, setShowOnboarding] = useState(true);
+  const [slideAILoading, setSlideAILoading] = useState(false);
 
   // 기본 슬라이드 (data는 항상 초기화, templateId는 localStorage에서 복원)
   const defaultSlides = [
@@ -78,7 +79,7 @@ function PresentationBuilder() {
 
   const replaceCurrentSlide = (templateId) => {
     const newSlides = [...slides];
-    newSlides[currentSlideIndex] = { ...newSlides[currentSlideIndex], templateId, data: {} };
+    newSlides[currentSlideIndex] = { ...newSlides[currentSlideIndex], templateId };
     setSlides(newSlides);
     setSelectedCategory(null);
   };
@@ -102,6 +103,52 @@ function PresentationBuilder() {
     };
     setSlides(newSlides);
     showStatus('슬라이드가 초기화되었습니다! 🔄');
+  };
+
+  // 현재 슬라이드 AI 수정 (문서 텍스트 옵션)
+  const handleSlideAIEdit = async (documentText) => {
+    const slide = slides[currentSlideIndex];
+    if (!slide) return;
+    setSlideAILoading(true);
+
+    try {
+      const newData = await aiEditSingleSlide(slide, documentText || '');
+      if (newData && typeof newData === 'object') {
+        const newSlides = [...slides];
+        const mergedData = { ...newSlides[currentSlideIndex].data };
+        Object.keys(newData).forEach(function(key) {
+          if (key !== 'existing' && key !== 'newSlides') {
+            mergedData[key] = newData[key];
+          }
+        });
+        newSlides[currentSlideIndex] = { ...newSlides[currentSlideIndex], data: mergedData };
+        setSlides(newSlides);
+        showStatus('AI가 슬라이드를 수정했습니다! ✨');
+      }
+    } catch (err) {
+      showStatus('AI 수정 실패: ' + err.message);
+    } finally {
+      setSlideAILoading(false);
+    }
+  };
+
+  // PDF 삽입 → 현재 슬라이드만 AI로 채우기
+  const handleSlidePDFInsert = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.pdf,.doc,.docx';
+    input.onchange = async (e) => {
+      const f = e.target.files[0];
+      if (!f) return;
+      try {
+        showStatus('파일에서 텍스트를 추출하는 중...');
+        const text = await extractTextFromFile(f);
+        await handleSlideAIEdit(text);
+      } catch (err) {
+        showStatus('파일 처리 실패: ' + err.message);
+      }
+    };
+    input.click();
   };
 
   // 페이지 번호 자동 계산 (Main Cover, Final Cover, Index 제외)
@@ -182,8 +229,15 @@ function PresentationBuilder() {
 
   // AI 온보딩 완료 핸들러
   const handleOnboardingComplete = (newSlides) => {
+    // 빈 배열이거나 유효하지 않으면 원본 유지
+    if (!Array.isArray(newSlides) || newSlides.length === 0) {
+      setShowOnboarding(false);
+      showStatus('AI 응답이 유효하지 않아 기존 슬라이드를 유지합니다.');
+      return;
+    }
     const addedCount = newSlides.length - slides.length;
     setSlides(newSlides);
+    setCurrentSlideIndex(0);
     setShowOnboarding(false);
     if (addedCount > 0) {
       showStatus('AI가 슬라이드를 채우고 ' + addedCount + '개의 슬라이드를 추가했습니다! ✨');
@@ -227,6 +281,13 @@ function PresentationBuilder() {
     showStatus('PDF 다운로드 완료! 📥');
   };
 
+
+  // currentSlideIndex 범위 보정
+  useEffect(() => {
+    if (currentSlideIndex >= slides.length && slides.length > 0) {
+      setCurrentSlideIndex(slides.length - 1);
+    }
+  }, [slides.length, currentSlideIndex]);
 
   // currentSlideIndex + templateId 저장 (새로고침 시 위치와 Type 복원, data는 초기화)
   useEffect(() => {
@@ -362,7 +423,8 @@ function PresentationBuilder() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  const currentSlide = slides[currentSlideIndex];
+  const safeIndex = Math.min(currentSlideIndex, slides.length - 1);
+  const currentSlide = slides[safeIndex];
   const currentTemplate = currentSlide ? ALL_TEMPLATES[currentSlide.templateId] : null;
 
   const templatesByCategory = Object.values(ALL_TEMPLATES).reduce((acc, template) => {
@@ -476,7 +538,12 @@ function PresentationBuilder() {
               <button onClick={() => handleZoom(scale + 0.05)} className="p-1 hover:bg-slate-100 rounded text-slate-500 flex items-center justify-center text-lg font-bold">+</button>
             </div>
             <div className="w-px h-6 bg-slate-200 mx-1" />
-            <button onClick={resetSlide} className="px-3 py-2 hover:bg-blue-100 text-blue-600 rounded-lg font-bold text-sm">새로고침</button>
+            <button onClick={() => handleSlideAIEdit()} disabled={slideAILoading} className={`px-3 py-2 rounded-lg font-bold text-sm whitespace-nowrap ${slideAILoading ? 'bg-purple-50 text-purple-300' : 'hover:bg-purple-100 text-purple-600'}`}>
+              {slideAILoading ? '⏳ AI 작업중...' : '✨ AI 수정'}
+            </button>
+            <button onClick={handleSlidePDFInsert} disabled={slideAILoading} className={`px-3 py-2 rounded-lg font-bold text-sm whitespace-nowrap ${slideAILoading ? 'bg-emerald-50 text-emerald-300' : 'hover:bg-emerald-100 text-emerald-600'}`}>
+              📄 PDF 삽입
+            </button>
             <div className="w-px h-6 bg-slate-200 mx-1" />
             <button onClick={deleteSlide} className="px-3 py-2 hover:bg-red-100 text-red-600 rounded-lg font-bold text-sm">삭제</button>
             <div className="w-px h-6 bg-slate-200 mx-1" />
